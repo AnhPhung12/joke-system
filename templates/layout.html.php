@@ -49,14 +49,14 @@ $bellUnread = count(array_filter($bellItems, static fn($n) => !(bool)$n["is_read
     <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
     <link rel="stylesheet" href="<?= e(Url::to('/assets/css/style.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::to('/assets/css/chibi.css')) ?>?v=4">
-    <link rel="stylesheet" href="<?= e(Url::to('/assets/css/auth.css')) ?>?v=20261110d">
+    <link rel="stylesheet" href="<?= e(Url::to('/assets/css/auth.css')) ?>?v=20261116">
     <link rel="stylesheet" href="<?= e(Url::to('/assets/css/profile.css')) ?>?v=20261114q">
     <link rel="stylesheet" href="<?= e(Url::to('/assets/css/admin.css')) ?>?v=20261114q">
     <link rel="stylesheet" href="<?= e(Url::to('/assets/css/playground.css')) ?>">
     <link rel="stylesheet" href="<?= e(Url::to('/assets/css/language-profile.css')) ?>?v=20261114q">
 
     <!-- Deferred client scripts -->
-    <script src="<?= e(Url::to('/assets/js/main.js')) ?>?v=20261114q" defer></script>
+    <script src="<?= e(Url::to('/assets/js/main.js')) ?>?v=20261116" defer></script>
     <script src="<?= e(Url::to('/assets/js/staff-admin.js')) ?>?v=20261114q" defer></script>
 </head>
 <body class="<?= $isAdminLayout ? 'admin-area' : 'user-area' ?>">
