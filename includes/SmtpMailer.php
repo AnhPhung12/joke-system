@@ -52,7 +52,7 @@ final class SmtpMailer
     /**
      * Send the 4-digit OTP via HTTPS API/webhook (Render-compatible) or SMTP (local/VPS).
      */
-    public function sendPasswordOtp(string $to, string $code): void
+    public function sendPasswordOtp(string $to, string $code, string $subject = 'JOKÉ password reset code', string $heading = 'JOKÉ Password Reset Code'): void
     {
         // On localhost without mail credentials, skip network delivery so Local Test Mode banner is shown.
         if (self::isLocalDevFallback()) {
@@ -64,11 +64,10 @@ final class SmtpMailer
         $mail = $config['mail'];
         $fromName = trim((string) ($mail['from_name'] ?? 'JOKÉ'));
         $fromEmail = trim((string) ($mail['from_email'] ?? '')) ?: 'noreply@example.com';
-        $subject = 'JOKÉ password reset code';
-        $textBody = "Your JOKÉ password reset code is: {$code}\r\n\r\nIt expires in 10 minutes. Do not share this code with anyone.";
+        $textBody = "Your JOKÉ verification code is: {$code}\r\n\r\nIt expires in 10 minutes. Do not share this code with anyone.";
         $htmlBody = '<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;background:#1e1b24;color:#f5f5f5;border-radius:12px;">'
-            . '<h2 style="margin:0 0 12px;color:#ffd166;">JOKÉ Password Reset Code</h2>'
-            . '<p style="margin:0 0 16px;line-height:1.6;">Use this 4-digit code to reset your password (valid for 10 minutes):</p>'
+            . '<h2 style="margin:0 0 12px;color:#ffd166;">' . htmlspecialchars($heading, ENT_QUOTES, 'UTF-8') . '</h2>'
+            . '<p style="margin:0 0 16px;line-height:1.6;">Use this 4-digit verification code (valid for 10 minutes):</p>'
             . '<div style="font-size:32px;font-weight:bold;letter-spacing:10px;text-align:center;padding:16px;background:rgba(255,209,102,0.14);border:1px solid rgba(255,209,102,0.35);border-radius:10px;color:#ffd166;margin-bottom:16px;">' . htmlspecialchars($code, ENT_QUOTES, 'UTF-8') . '</div>'
             . '<p style="margin:0;font-size:12px;color:#b5b5b5;">Do not share this code with anyone.</p></div>';
 

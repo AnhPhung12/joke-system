@@ -6,6 +6,7 @@ namespace App\Controllers;
 
 use App\Core\{Auth, Csrf, Session, Url, View};
 use App\Models\User;
+use App\Services\SmtpMailer;
 use PDOException;
 
 /**
@@ -97,8 +98,20 @@ final class AuthController
             Url::redirect('/dashboard');
         }
 
-        // Render the registration page
-        View::render('auth/register', ['title' => 'Sign up']);
+        $pending = $_SESSION['register_otp'] ?? null;
+        $otpPending = is_array($pending) && time() <= (int) ($pending['expires_at'] ?? 0);
+        if (!$otpPending) {
+            unset($_SESSION['register_otp']);
+        }
+
+        // Render the registration page (Step 1 form or Step 2 OTP verification)
+        View::render('auth/register', [
+            'title'        => 'Sign up',
+            'otpPending'   => $otpPending,
+            'otpEmail'     => $otpPending ? (string) ($pending['email'] ?? '') : '',
+            'otpExpiresAt' => $otpPending ? (int) ($pending['expires_at'] ?? 0) : 0,
+            'localOtp'     => $otpPending ? ($pending['local_otp'] ?? null) : null,
+        ]);
     }
 
     /**
@@ -129,16 +142,100 @@ final class AuthController
     }
 
     /**
-     * Validate input and register a new user account.
+     * Validate input, verify email via 4-digit OTP, and register a new user account.
      */
     public function register(): void
     {
         // Validate CSRF token on registration submission
         Csrf::enforce();
 
-        // Sanitize and normalize submitted registration fields
+        $action = (string) ($_POST['action'] ?? 'send_otp');
+
+        if ($action === 'cancel_otp') {
+            unset($_SESSION['register_otp']);
+            Url::redirect('/register');
+        }
+
+        if ($action === 'resend_otp') {
+            $pending = $_SESSION['register_otp'] ?? null;
+            if (!is_array($pending) || empty($pending['email'])) {
+                Session::flash('Your registration session expired. Please fill in your details again.');
+                Url::redirect('/register');
+            }
+            $otp = str_pad((string) random_int(0, 9999), 4, '0', STR_PAD_LEFT);
+            $pending['code_hash'] = hash('sha256', $otp);
+            $pending['expires_at'] = time() + 600;
+            $pending['attempts'] = 0;
+            $pending['local_otp'] = SmtpMailer::isLocalDevFallback() ? $otp : null;
+            $_SESSION['register_otp'] = $pending;
+
+            try {
+                (new SmtpMailer())->sendPasswordOtp(
+                    (string) $pending['email'],
+                    $otp,
+                    'JOKÉ account verification code',
+                    'JOKÉ Email Verification Code'
+                );
+                Session::flash(!empty($pending['local_otp'])
+                    ? 'Local Test Mode (mail not configured): Your 4-digit OTP is ' . $pending['local_otp'] . '.'
+                    : 'A new 4-digit verification code has been sent to ' . $pending['email'] . '.');
+            } catch (\Throwable $e) {
+                error_log('JOKE register OTP resend: ' . $e->getMessage());
+                Session::flash('Could not resend verification code. Please try again.');
+            }
+            Url::redirect('/register');
+        }
+
+        if ($action === 'verify_otp') {
+            $pending = $_SESSION['register_otp'] ?? null;
+            $otp = trim((string) ($_POST['otp'] ?? ''));
+
+            if (!is_array($pending) || time() > (int) ($pending['expires_at'] ?? 0)) {
+                unset($_SESSION['register_otp']);
+                Session::flash('Verification code expired. Please sign up again.');
+                Url::redirect('/register');
+            }
+
+            if (!preg_match('/^\d{4}$/', $otp) || !hash_equals((string) ($pending['code_hash'] ?? ''), hash('sha256', $otp))) {
+                $pending['attempts'] = (int) ($pending['attempts'] ?? 0) + 1;
+                if ($pending['attempts'] >= 5) {
+                    unset($_SESSION['register_otp']);
+                    Session::flash('Too many incorrect OTP attempts. Please register again.');
+                } else {
+                    $_SESSION['register_otp'] = $pending;
+                    Session::flash('Incorrect 4-digit verification code.');
+                }
+                Url::redirect('/register');
+            }
+
+            try {
+                (new User())->create(
+                    (string) $pending['username'],
+                    (string) $pending['email'],
+                    (string) $pending['pass_hash'],
+                    (string) ($pending['location'] ?? 'Vietnam'),
+                    true
+                );
+                unset($_SESSION['register_otp']);
+            } catch (PDOException $e) {
+                unset($_SESSION['register_otp']);
+                if ($e->getCode() === '23000') {
+                    Session::flash('Username or email already exists.');
+                } else {
+                    error_log($e->getMessage());
+                    Session::flash('Registration is unavailable at the moment.');
+                }
+                Url::redirect('/register');
+            }
+
+            Session::flash('Registration successful! Please sign in.');
+            Url::redirect('/login');
+        }
+
+        // Step 1: Validate registration fields, check uniqueness, and send 4-digit OTP
         $username = trim((string) ($_POST['username'] ?? ''));
         $email = strtolower(trim((string) ($_POST['email'] ?? '')));
+        $location = trim((string) ($_POST['location'] ?? ''));
         $password = (string) ($_POST['password'] ?? '');
         $confirm = (string) ($_POST['confirm_password'] ?? '');
 
@@ -154,25 +251,41 @@ final class AuthController
             Url::redirect('/register');
         }
 
-        try {
-            // Persist the new user account in the database
-            (new User())->create($username, $email, $password);
-        } catch (PDOException $e) {
-            // SQLSTATE 23000 indicates a duplicate username or email constraint violation
-            if ($e->getCode() === '23000') {
-                Session::flash('Username or email already exists.');
-            } else {
-                error_log($e->getMessage());
-                Session::flash('Registration is unavailable at the moment.');
-            }
-
-            // Redirect back to registration on failure
+        if ((new User())->exists($username, $email)) {
+            Session::flash('Username or email already exists.');
             Url::redirect('/register');
         }
 
-        // Notify user of success and redirect to sign-in page
-        Session::flash('Registration successful! Please sign in.');
-        Url::redirect('/login');
+        $otp = str_pad((string) random_int(0, 9999), 4, '0', STR_PAD_LEFT);
+        $localOtp = SmtpMailer::isLocalDevFallback() ? $otp : null;
+        $_SESSION['register_otp'] = [
+            'username'   => $username,
+            'email'      => $email,
+            'location'   => $location !== '' ? mb_substr($location, 0, 120) : 'Vietnam',
+            'pass_hash'  => password_hash($password, PASSWORD_DEFAULT),
+            'code_hash'  => hash('sha256', $otp),
+            'expires_at' => time() + 600,
+            'attempts'   => 0,
+            'local_otp'  => $localOtp,
+        ];
+
+        try {
+            (new SmtpMailer())->sendPasswordOtp(
+                $email,
+                $otp,
+                'JOKÉ account verification code',
+                'JOKÉ Email Verification Code'
+            );
+            Session::flash($localOtp !== null
+                ? 'Local Test Mode (mail not configured): Your 4-digit OTP is ' . $localOtp . '.'
+                : 'A 4-digit verification code has been sent to ' . $email . '.');
+        } catch (\Throwable $e) {
+            unset($_SESSION['register_otp']);
+            error_log('JOKE register OTP: ' . $e->getMessage());
+            Session::flash('Could not send verification email. Please check email settings and try again.');
+        }
+
+        Url::redirect('/register');
     }
 
     /**

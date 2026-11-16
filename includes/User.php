@@ -75,17 +75,30 @@ final class User
     }
 
     /**
+     * Check whether a username or email is already registered.
+     */
+    public function exists(string $username, string $email): bool
+    {
+        $s = $this->db->prepare('SELECT 1 FROM users WHERE username = ? OR email = ? LIMIT 1');
+        $s->execute([$username, $email]);
+        return (bool) $s->fetchColumn();
+    }
+
+    /**
      * Register a new user account and assign the default 'user' role atomically.
      */
-    public function create(string $username, string $email, string $password): int
+    public function create(string $username, string $email, string $password, string $location = 'Vietnam', bool $alreadyHashed = false): int
     {
         // Start a transaction so user creation and role assignment succeed or fail together.
         $this->db->beginTransaction();
 
         try {
-            // Insert the new user record with a strongly hashed password.
-            $stmt = $this->db->prepare('INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)');
-            $stmt->execute([$username, $email, password_hash($password, PASSWORD_DEFAULT)]);
+            $loc = trim($location) !== '' ? mb_substr(trim($location), 0, 120) : 'Vietnam';
+            $hash = $alreadyHashed ? $password : password_hash($password, PASSWORD_DEFAULT);
+
+            // Insert the new user record with a strongly hashed password and location.
+            $stmt = $this->db->prepare('INSERT INTO users (username, email, password_hash, location) VALUES (?, ?, ?, ?)');
+            $stmt->execute([$username, $email, $hash, $loc]);
             $id = (int) $this->db->lastInsertId();
 
             // Assign the default 'user' role from the roles lookup table.
