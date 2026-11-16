@@ -1,0 +1,3 @@
+/* Page-specific styles can be added here; common styles are in style.css. */
+
+.otp-inputs{display:flex!important;flex-direction:row!important;gap:12px;justify-content:center;margin:24px 0}.auth-card .otp-digit{display:block;box-sizing:border-box;width:58px!important;min-width:58px!important;max-width:58px!important;height:64px!important;min-height:64px!important;margin:0!important;text-align:center;font-size:30px;font-weight:800;padding:6px!important}.otp-timer{text-align:center;color:var(--muted)}.otp-timer strong{color:var(--coffee);font-variant-numeric:tabular-nums}@media(max-width:420px){.otp-inputs{gap:8px}.auth-card .otp-digit{width:50px!important;min-width:50px!important;max-width:50px!important;height:58px!important}}
