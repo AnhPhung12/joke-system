@@ -60,9 +60,12 @@ final class Admin
         // Initialize output array
         $out = [];
 
-        // Count total rows across core platform tables
+        // Count total rows across core platform tables (excluding anonymized deleted users)
         foreach (['users' => 'users', 'jokes' => 'jokes', 'comments' => 'comments', 'reports' => 'reports', 'games' => 'game_sessions'] as $key => $table) {
-            $out[$key] = (int) $this->db->query('SELECT COUNT(*) FROM ' . $table)->fetchColumn();
+            $sqlCount = $key === 'users'
+                ? "SELECT COUNT(*) FROM users WHERE status <> 'deleted' AND username NOT LIKE 'deleted\\_%'"
+                : 'SELECT COUNT(*) FROM ' . $table;
+            $out[$key] = (int) $this->db->query($sqlCount)->fetchColumn();
         }
 
         // Count jokes awaiting moderation review
@@ -95,8 +98,12 @@ final class Admin
      */
     public function users(string $q = '', string $role = '', string $sort = 'newest', string $date = ''): array
     {
-        // Base search predicate across username, email, and location
-        $where = ['(u.username LIKE ? OR u.email LIKE ? OR u.location LIKE ?)'];
+        // Base search predicate across username, email, and location (hide deleted/anonymized users)
+        $where = [
+            "u.status <> 'deleted'",
+            "u.username NOT LIKE 'deleted\\_%'",
+            '(u.username LIKE ? OR u.email LIKE ? OR u.location LIKE ?)',
+        ];
         $params = ['%' . $q . '%', '%' . $q . '%', '%' . $q . '%'];
 
         // Normalize role filter alias ('client' -> 'user')

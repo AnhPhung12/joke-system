@@ -179,7 +179,10 @@ final class Auth
         // Redirect guests with a flash prompt
         if (!self::user()) {
             Session::flash('Please sign in to continue.');
-            Url::redirect('/login');
+            $script = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? '');
+            $uri = (string) ($_SERVER['REQUEST_URI'] ?? '');
+            $isAdminReq = str_contains($script, '/admin/') || preg_match('#/(?:admin|moderator)(?:/|$)#', $uri);
+            Url::redirect($isAdminReq ? '/staff/login' : '/login');
         }
     }
 
