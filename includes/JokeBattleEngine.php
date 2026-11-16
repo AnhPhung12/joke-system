@@ -33,7 +33,20 @@ final class JokeBattleEngine implements GameEngine
      */
     public function reply(string $message, array $history): array
     {
+        $askTranslate = (bool) preg_match(
+            '/(?:nghĩa\s*tiếng\s*việt|tiếng\s*việt|dịch|giải\s*thích|translate|what\s+does\s+.*\s+mean)/iu',
+            trim($message)
+        );
+
         if (!GeminiClient::configured() && GeminiClient::isLocalFallback()) {
+            if ($askTranslate) {
+                return [
+                    'valid'    => true,
+                    'score'    => 0,
+                    'feedback' => 'Translation',
+                    'ai'       => 'Đây là câu chơi chữ tiếng Anh nên khi dịch sát nghĩa sẽ mất độ hài gốc, nhưng ý là nói vui theo kiểu đồng âm/chơi chữ. Bạn kể tiếp 1 câu joke tiếng Anh khác nhé! (Local Offline Mode)',
+                ];
+            }
             $jokes = [
                 'Why do programmers prefer dark mode? Because light attracts bugs!',
                 'I told my computer I needed a break, and now it will not stop sending me Kit-Kat ads.',
@@ -49,6 +62,21 @@ final class JokeBattleEngine implements GameEngine
                 'score'    => $score,
                 'feedback' => $feedback,
                 'ai'       => "⭐ Rating: {$score}/100 — {$feedback}\n\n🎭 My joke: {$aiJoke}",
+            ];
+        }
+
+        if ($askTranslate) {
+            $rules = 'You are Baby Joke, a friendly English joke bot. The user is NOT telling a joke right now; they are asking you to translate or explain your previous joke in Vietnamese ("' . $message . '"). Translate your previous joke into natural Vietnamese and briefly explain the pun/wordplay in Vietnamese. Do NOT rate their question as a joke. Return JSON keys score (0), feedback (your Vietnamese translation and explanation), ai_joke (empty string "").';
+            $r = (new GeminiClient())->json($rules, $message, $history);
+            $reply = trim((string) ($r['feedback'] ?? ''));
+            if ($reply === '') {
+                throw new \RuntimeException('Gemini could not translate the joke. Please retry.');
+            }
+            return [
+                'valid'    => true,
+                'score'    => 0,
+                'feedback' => $reply,
+                'ai'       => $reply . "\n\n🎤 Now tell me your next joke!",
             ];
         }
 
