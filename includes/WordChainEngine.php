@@ -120,6 +120,18 @@ final class WordChainEngine implements GameEngine
         $used = $state['used'] ?? [];
         $error = null;
 
+        // If the player gives up ("i dont know", "idk", "give up"), end the round as a loss immediately.
+        if (preg_match('/^(?:i\s*(?:do\s*not|don.?t|dont)\s*know|idk|no\s*idea|i\s*give\s*up|give\s*up|skip)[.!?\s]*$/iu', trim($message))) {
+            $state['mistakes'] = 3;
+            return [
+                'valid'    => false,
+                'message'  => 'You gave up! You lose this round — start a new topic to play again.',
+                'finished' => true,
+                'result'   => 'loss',
+                'state'    => $state,
+            ];
+        }
+
         // Run local structural, uniqueness, and letter-chaining checks before calling Gemini.
         if (!preg_match('/^[a-z]{2,30}$/', $word)) {
             $error = 'Enter exactly one English word (letters only).';
