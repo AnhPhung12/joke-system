@@ -48,7 +48,7 @@ $bellUnread = count(array_filter($bellItems, static fn($n) => !(bool)$n["is_read
     <!-- W3.CSS framework + application stylesheets -->
     <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
     <link rel="stylesheet" href="<?= e(Url::to('/assets/css/style.css')) ?>">
-    <link rel="stylesheet" href="<?= e(Url::to('/assets/css/chibi.css')) ?>?v=3">
+    <link rel="stylesheet" href="<?= e(Url::to('/assets/css/chibi.css')) ?>?v=4">
     <link rel="stylesheet" href="<?= e(Url::to('/assets/css/auth.css')) ?>?v=20261110d">
     <link rel="stylesheet" href="<?= e(Url::to('/assets/css/profile.css')) ?>?v=20261114q">
     <link rel="stylesheet" href="<?= e(Url::to('/assets/css/admin.css')) ?>?v=20261114q">
