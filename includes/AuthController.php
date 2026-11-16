@@ -182,9 +182,13 @@ final class AuthController
     {
         // Enforce CSRF protection on logout POST
         Csrf::enforce();
+        // Remember whether the user was staff or logging out from an admin page
+        $wasStaff = Auth::hasRole('admin') || Auth::hasRole('moderator');
+        $referer = (string) ($_SERVER['HTTP_REFERER'] ?? '');
+        $fromAdmin = $wasStaff || (bool) preg_match('#/(?:admin|moderator)(?:/|$|\.)#', $referer);
         // Destroy the active session
         Auth::logout();
-        // Redirect to the home page
-        Url::redirect('/');
+        // Redirect staff back to the admin/staff login page, and regular users home
+        Url::redirect($fromAdmin ? '/staff/login' : '/');
     }
 }
