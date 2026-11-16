@@ -163,14 +163,14 @@ $joinedTime = $rawJoined !== '' ? date('H:i:s', strtotime($rawJoined)) : '—'; 
                         <line x1="8" y1="2" x2="8" y2="6"></line>
                         <line x1="3" y1="10" x2="21" y2="10"></line>
                     </svg>
-                    <span><strong>Date joined:</strong> <?= e($joinedDate) ?></span>
+                    <span><strong>Date joined:</strong> <span data-local-dt="<?= $rawJoined !== '' ? e(date('Y-m-d\TH:i:s+07:00', strtotime($rawJoined))) : '' ?>" data-local-fmt="date"><?= e($joinedDate) ?></span></span>
                 </span>
                 <span class="joined-badge">
                     <svg class="joined-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13" aria-hidden="true">
                         <circle cx="12" cy="12" r="10"></circle>
                         <polyline points="12 6 12 12 16 14"></polyline>
                     </svg>
-                    <span><strong>Time joined:</strong> <?= e($joinedTime) ?></span>
+                    <span><strong>Time joined:</strong> <span data-local-dt="<?= $rawJoined !== '' ? e(date('Y-m-d\TH:i:s+07:00', strtotime($rawJoined))) : '' ?>" data-local-fmt="time"><?= e($joinedTime) ?></span></span>
                 </span>
                 <?php if (!empty($profile['location'])): // Display location badge only when location is set ?>
                     <span class="joined-badge">

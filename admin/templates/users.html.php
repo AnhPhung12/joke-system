@@ -354,10 +354,10 @@ $currentDate = $filter_date ?? (string) ($_GET['filter_date'] ?? $_GET['date'] ?
               </span>
             </td>
             <td>
-              <span class="staff-date"><?= e($displayDate) ?></span>
+              <span class="staff-date" <?= $createdAt ? 'data-local-dt="' . e(date('Y-m-d\TH:i:s+07:00', $createdAt)) . '" data-local-fmt="date"' : '' ?>><?= e($displayDate) ?></span>
             </td>
             <td>
-              <span class="staff-time"><?= e($displayTime) ?></span>
+              <span class="staff-time" <?= $createdAt ? 'data-local-dt="' . e(date('Y-m-d\TH:i:s+07:00', $createdAt)) . '" data-local-fmt="time"' : '' ?>><?= e($displayTime) ?></span>
             </td>
             <td>
               <div class="staff-row-actions">

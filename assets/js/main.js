@@ -317,3 +317,17 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 });
+
+document.addEventListener('DOMContentLoaded', () => {
+  const pad = n => String(n).padStart(2, '0');
+  document.querySelectorAll('[data-local-dt]').forEach(el => {
+    const d = new Date(el.dataset.localDt || '');
+    if (Number.isNaN(d.getTime())) return;
+    const dateStr = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    const timeStr = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    const fmt = el.dataset.localFmt || 'datetime';
+    if (fmt === 'date') el.textContent = dateStr;
+    else if (fmt === 'time') el.textContent = timeStr;
+    else el.textContent = `${dateStr} (${timeStr})`;
+  });
+});

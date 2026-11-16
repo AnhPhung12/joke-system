@@ -47,7 +47,10 @@ if (preg_match('/^preset:(1[0-2]|[1-9])$/', (string)($profile['avatar_path'] ?? 
         <!-- Escaped user identity, location, join timestamp, and bio -->
         <h2><?= e($profile['username']) ?></h2>
         <p>
-            <?= e($profile['email']) ?> · 📍 <?= e($profile['location'] ?? 'United Kingdom') ?> · Joined <?= e(substr($profile['created_at'], 0, 10)) ?> (<?= e(substr($profile['created_at'], 11, 8)) ?>)
+            <?= e($profile['email']) ?> · 📍 <?= e($profile['location'] ?? 'United Kingdom') ?> · Joined
+            <span data-local-dt="<?= e(str_replace(' ', 'T', substr((string)($profile['created_at'] ?? ''), 0, 19)) . '+07:00') ?>" data-local-fmt="datetime">
+                <?= e(substr($profile['created_at'], 0, 10)) ?> (<?= e(substr($profile['created_at'], 11, 8)) ?>)
+            </span>
         </p>
         <p><?= e($profile['bio'] ?? '') ?></p>
     </div>

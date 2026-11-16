@@ -56,7 +56,7 @@ $bellUnread = count(array_filter($bellItems, static fn($n) => !(bool)$n["is_read
     <link rel="stylesheet" href="<?= e(Url::to('/assets/css/language-profile.css')) ?>?v=20261114q">
 
     <!-- Deferred client scripts -->
-    <script src="<?= e(Url::to('/assets/js/main.js')) ?>?v=20261116" defer></script>
+    <script src="<?= e(Url::to('/assets/js/main.js')) ?>?v=20261116b" defer></script>
     <script src="<?= e(Url::to('/assets/js/staff-admin.js')) ?>?v=20261114q" defer></script>
 </head>
 <body class="<?= $isAdminLayout ? 'admin-area' : 'user-area' ?>">
