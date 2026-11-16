@@ -219,12 +219,12 @@ final class Profile
     }
 
     /**
-     * Retrieve the raw avatar BLOB and MIME type for an active user, if present.
+     * Retrieve the raw avatar BLOB and MIME type for a non-deleted user, if present.
      */
     public function avatar(int $id): ?array
     {
-        // Fetch avatar binary data and MIME type for an active user.
-        $s = $this->db->prepare("SELECT avatar_data, avatar_mime FROM users WHERE id = ? AND status = 'active' LIMIT 1");
+        // Fetch avatar binary data and MIME type for active or suspended users (exclude deleted).
+        $s = $this->db->prepare("SELECT avatar_data, avatar_mime FROM users WHERE id = ? AND status <> 'deleted' LIMIT 1");
         $s->execute([$id]);
         $row = $s->fetch();
 
