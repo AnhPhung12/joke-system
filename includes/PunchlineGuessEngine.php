@@ -66,8 +66,14 @@ final class PunchlineGuessEngine implements GameEngine
         // Extract the most recent setup question from the conversation history.
         $question = self::lastQuestion($history);
 
+        // Detect translation/clarification requests (e.g. "nghĩa tiếng việt là gì", "dịch", "translate")
+        $askTranslate = (bool) preg_match(
+            '/(?:nghĩa\s*tiếng\s*việt|tiếng\s*việt|dịch|translate|meaning|what\s+does\s+.*\s+mean)/iu',
+            trim($message)
+        );
+
         // Detect explicit give-up/skip phrases so the player receives 0 points for the round.
-        $giveUp = (bool) preg_match(
+        $giveUp = !$askTranslate && (bool) preg_match(
             '/^(?:i\s*(?:do not|don.t|dont)\s*know|idk|no idea|i give up|give up|tell me(?: the answer)?|reveal(?: the answer)?|skip)[.!?\s]*$/iu',
             trim($message)
         );
@@ -98,10 +104,18 @@ final class PunchlineGuessEngine implements GameEngine
             ];
         }
 
-        // Build the referee system prompt instructing Gemini to score, reveal, and advance.
-        $rules = 'You are Baby Joke running an English Guess the Punchline quiz. The CURRENT joke setup is: '
-            . json_encode($question)
-            . '. The player input is a punchline guess. If the player asks for a translation or asks in Vietnamese (e.g. "nghĩa tiếng việt là gì"), briefly translate and explain the joke in Vietnamese inside feedback, then still reveal the actual English punchline and give next_question. If the player says they do not know, gives up, asks for the answer or skips, DO NOT score them as correct: reveal the ACTUAL funny punchline clearly and explain it briefly. Otherwise judge creative guesses generously, and reveal the actual punchline regardless of whether they were right. Generate ONE new original funny question for the next round. Return JSON with score (0 or 1), feedback (MUST include the actual punchline), next_question (new setup question). Do not reuse old questions. Do not reveal the next punchline. No markdown.';
+        // Build the referee system prompt instructing Gemini to score, reveal, and advance (or translate without spoiling).
+        if ($askTranslate) {
+            $rules = 'You are Baby Joke running an English Guess the Punchline quiz. The CURRENT joke setup is: '
+                . json_encode($question)
+                . '. The player is asking for a Vietnamese translation/explanation of the question or previous joke ("'
+                . $message
+                . '"). Translate the CURRENT question into natural Vietnamese (and if they meant the previous joke, briefly explain that too), but DO NOT reveal the punchline/answer to the current question! Invite them to guess the answer. Return JSON with score (0), feedback (Vietnamese translation + encouragement without spoiling the answer), next_question (' . json_encode($question) . '). No markdown.';
+        } else {
+            $rules = 'You are Baby Joke running an English Guess the Punchline quiz. The CURRENT joke setup is: '
+                . json_encode($question)
+                . '. The player input is a punchline guess. If the player says they do not know, gives up, asks for the answer or skips, DO NOT score them as correct: reveal the ACTUAL funny punchline clearly and explain it briefly. Otherwise judge creative guesses generously, and reveal the actual punchline regardless of whether they were right. Generate ONE new original funny question for the next round. Return JSON with score (0 or 1), feedback (MUST include the actual punchline), next_question (new setup question). Do not reuse old questions. Do not reveal the next punchline. No markdown.';
+        }
 
         // Call Gemini with the rules, user input (or give-up directive), and conversation history.
         $r = (new GeminiClient())->json(
@@ -110,10 +124,10 @@ final class PunchlineGuessEngine implements GameEngine
             $history
         );
 
-        // Clamp the round score to 0 or 1, forcing 0 when the player gave up.
-        $score = $giveUp ? 0 : max(0, min(1, (int) ($r['score'] ?? 0)));
-        // Mark the quiz complete after the 5th round.
-        $finished = $round + 1 >= 5;
+        // Clamp the round score to 0 or 1, forcing 0 when the player gave up or asked for translation.
+        $score = ($giveUp || $askTranslate) ? 0 : max(0, min(1, (int) ($r['score'] ?? 0)));
+        // Mark the quiz complete after the 5th round (do not end on a translation request).
+        $finished = !$askTranslate && ($round + 1 >= 5);
 
         // Extract and validate the punchline reveal feedback from Gemini.
         $feedback = trim(mb_substr((string) ($r['feedback'] ?? ''), 0, 700));
