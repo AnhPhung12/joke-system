@@ -45,8 +45,5 @@ use App\Core\{Csrf, Url}; // Import CSRF and URL helpers
         <p class="form-foot">
             Need an account? <a href="<?= e(Url::to('/register')) ?>">Sign up</a>
         </p>
-        <p class="form-foot">
-            <a href="<?= e(Url::to('/staff/login')) ?>">Admin / Moderator login →</a>
-        </p>
     </form>
 </section>
