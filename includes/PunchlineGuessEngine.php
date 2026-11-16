@@ -36,6 +36,7 @@ final class PunchlineGuessEngine implements GameEngine
      */
     public static function openingQuestion(): string
     {
+        // Return a fixed opening question in localhost offline fallback mode.
         if (!GeminiClient::configured() && GeminiClient::isLocalFallback()) {
             return 'Why did the computer go to the doctor?';
         }
@@ -78,6 +79,7 @@ final class PunchlineGuessEngine implements GameEngine
             trim($message)
         );
 
+        // Use a local joke-and-punchline bank when running in localhost offline fallback mode.
         if (!GeminiClient::configured() && GeminiClient::isLocalFallback()) {
             $bank = [
                 'Why did the computer go to the doctor?' => 'Because it had a virus!',
@@ -88,6 +90,7 @@ final class PunchlineGuessEngine implements GameEngine
                 'Why did the scarecrow win an award?' => 'Because he was outstanding in his field!',
             ];
             $actual = $bank[$question] ?? 'Because it wanted to make you smile!';
+            // Score non-trivial guesses as 1 (0 on give-up) and advance to the next canned question.
             $finished = $round + 1 >= 5;
             $score = $giveUp ? 0 : (mb_strlen(trim($message)) >= 4 ? 1 : 0);
             $keys = array_keys($bank);

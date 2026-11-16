@@ -179,9 +179,11 @@ final class Auth
         // Redirect guests with a flash prompt
         if (!self::user()) {
             Session::flash('Please sign in to continue.');
+            // Normalize script path separators and inspect request URI for staff routes
             $script = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? '');
             $uri = (string) ($_SERVER['REQUEST_URI'] ?? '');
             $isAdminReq = str_contains($script, '/admin/') || preg_match('#/(?:admin|moderator)(?:/|$)#', $uri);
+            // Send staff-area requests to the staff login page and all others to user login
             Url::redirect($isAdminReq ? '/staff/login' : '/login');
         }
     }

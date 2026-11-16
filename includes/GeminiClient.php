@@ -36,9 +36,12 @@ final class GeminiClient
      */
     public static function isLocalFallback(): bool
     {
+        // Disable local fallback whenever a real API key is configured
         if (self::configured()) {
             return false;
         }
+
+        // Normalize request host without port and allow only loopback addresses
         $host = strtolower((string) ($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? ''));
         $host = preg_replace('/:\d+$/', '', $host);
         return in_array($host, ['localhost', '127.0.0.1', '::1'], true);

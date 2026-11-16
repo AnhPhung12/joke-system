@@ -38,9 +38,9 @@ $currentDate = $filter_date ?? (string) ($_GET['filter_date'] ?? $_GET['date'] ?
       <h2>Account Management</h2>
       <p>Administrators can manage staff and suspend or restore regular members.</p>
     </div>
-    <?php if (Auth::can('users.manage')): ?>
+    <?php if (Auth::can('users.manage')): // Show Add Staff button for users with management permission. ?>
       <button type="button" class="btn primary" data-open-dialog="staff-create">+ Add Staff</button>
-    <?php endif; ?>
+    <?php endif; // End Add Staff button check. ?>
   </div>
 
   <!-- Search bar preserving active column filters and sort order -->
@@ -66,6 +66,7 @@ $currentDate = $filter_date ?? (string) ($_GET['filter_date'] ?? $_GET['date'] ?
 
   <div class="table-wrap">
     <table class="data-table staff-data-table">
+      <!-- Sortable and filterable column headers -->
       <thead>
         <tr>
           <th class="th-account">
@@ -294,13 +295,13 @@ $currentDate = $filter_date ?? (string) ($_GET['filter_date'] ?? $_GET['date'] ?
         </tr>
       </thead>
       <tbody>
-        <?php if (empty($users)): ?>
+        <?php if (empty($users)): // Show empty state row when no accounts match filters. ?>
           <tr>
             <td colspan="10" class="staff-empty-row" style="text-align:center;padding:28px;color:var(--muted)">
               No accounts found.
             </td>
           </tr>
-        <?php endif; ?>
+        <?php endif; // End empty users check. ?>
 
         <?php foreach ($users as $u): // Render one table row per user account.
           $id = (int) $u['id']; // Cast user ID to integer.
@@ -329,13 +330,13 @@ $currentDate = $filter_date ?? (string) ($_GET['filter_date'] ?? $_GET['date'] ?
             </td>
             <td class="td-avatar">
               <div class="staff-user-avatar" title="<?= e($u['username']) ?>'s avatar">
-                <?php if (preg_match('/^preset:(1[0-2]|[1-9])$/', (string) ($u['avatar_path'] ?? ''), $presetMatch)): ?>
+                <?php if (preg_match('/^preset:(1[0-2]|[1-9])$/', (string) ($u['avatar_path'] ?? ''), $presetMatch)): // Render CSS preset avatar. ?>
                   <span class="preset-avatar preset-<?= (int) $presetMatch[1] ?>" aria-hidden="true"></span>
-                <?php elseif (!empty($u['has_avatar'])): ?>
+                <?php elseif (!empty($u['has_avatar'])): // Render custom uploaded avatar image. ?>
                   <img src="<?= e(Url::base() . '/avatar.php?id=' . (int) $u['id']) ?>" alt="<?= e($u['username']) ?>" class="avatar-img">
-                <?php else: ?>
+                <?php else: // Fallback to uppercase first letter of username. ?>
                   <span class="avatar-fallback"><?= e(mb_strtoupper(mb_substr($u['username'], 0, 1))) ?></span>
-                <?php endif; ?>
+                <?php endif; // End avatar display branch. ?>
               </div>
             </td>
             <td>
@@ -361,31 +362,31 @@ $currentDate = $filter_date ?? (string) ($_GET['filter_date'] ?? $_GET['date'] ?
             </td>
             <td>
               <div class="staff-row-actions">
-                <?php if ($staff && Auth::can('users.manage')): ?>
+                <?php if ($staff && Auth::can('users.manage')): // Allow editing staff accounts. ?>
                   <button type="button" class="btn ghost staff-action" data-open-dialog="staff-edit-<?= $id ?>">Edit</button>
-                <?php endif; ?>
-                <?php if (Auth::can('users.manage') && $id !== (int) Auth::user()['id'] && !in_array('admin', $rawRoles, true)): ?>
+                <?php endif; // End staff edit button check. ?>
+                <?php if (Auth::can('users.manage') && $id !== (int) Auth::user()['id'] && !in_array('admin', $rawRoles, true)): // Allow suspending/restoring non-admin accounts other than self. ?>
                   <button type="button" class="btn ghost staff-action <?= $u['status'] === 'active' ? 'staff-danger' : '' ?>" data-open-dialog="member-status-<?= $id ?>">
                     <?= $u['status'] === 'active' ? 'Suspend' : 'Restore' ?>
                   </button>
-                <?php endif; ?>
-                <?php if (in_array('moderator', $rawRoles, true) && Auth::can('roles.manage')): ?>
+                <?php endif; // End suspend/restore button check. ?>
+                <?php if (in_array('moderator', $rawRoles, true) && Auth::can('roles.manage')): // Allow configuring moderator permissions. ?>
                   <button type="button" class="btn ghost staff-action" data-open-dialog="staff-permissions-<?= $id ?>">Permissions</button>
-                <?php endif; ?>
-                <?php if (Auth::can('users.delete') && $id !== (int) Auth::user()['id']): ?>
+                <?php endif; // End permissions button check. ?>
+                <?php if (Auth::can('users.delete') && $id !== (int) Auth::user()['id']): // Allow deleting any account except the current admin. ?>
                   <button type="button" class="btn ghost staff-action staff-danger" data-open-dialog="staff-delete-<?= $id ?>">Delete</button>
-                <?php endif; ?>
+                <?php endif; // End delete button check. ?>
               </div>
             </td>
           </tr>
-        <?php endforeach; ?>
+        <?php endforeach; // End user table rows loop. ?>
       </tbody>
     </table>
   </div>
 </section>
 
 <!-- Dialog for creating a new staff account -->
-<?php if (Auth::can('users.manage')): ?>
+<?php if (Auth::can('users.manage')): // Render staff creation modal for authorized managers. ?>
   <dialog id="staff-create" class="staff-dialog">
     <form method="post" action="<?= e(Url::to('/admin/staff/create')) ?>" class="stacked-form">
       <input type="hidden" name="_csrf" value="<?= e(Csrf::token()) ?>">
@@ -429,7 +430,7 @@ $currentDate = $filter_date ?? (string) ($_GET['filter_date'] ?? $_GET['date'] ?
   $roles = array_values(array_unique(array_filter(array_map('trim', explode(',', (string) $u['roles']))))); // Parse assigned role slugs.
   $staff = (bool) array_intersect($roles, ['admin', 'moderator']); // Flag whether account is staff.
 ?>
-  <?php if ($staff && Auth::can('users.manage')): ?>
+  <?php if ($staff && Auth::can('users.manage')): // Render staff edit modal for staff accounts. ?>
     <dialog id="staff-edit-<?= $id ?>" class="staff-dialog">
       <form class="stacked-form" method="post" action="<?= e(Url::to('/admin/staff/' . $id . '/update')) ?>">
         <input type="hidden" name="_csrf" value="<?= e(Csrf::token()) ?>">
@@ -474,7 +475,7 @@ $currentDate = $filter_date ?? (string) ($_GET['filter_date'] ?? $_GET['date'] ?
     </dialog>
   <?php endif; ?>
 
-  <?php if (Auth::can('users.manage') && $id !== (int) Auth::user()['id'] && !in_array('admin', $roles, true)): ?>
+  <?php if (Auth::can('users.manage') && $id !== (int) Auth::user()['id'] && !in_array('admin', $roles, true)): // Render suspend/restore confirmation modal for non-admin accounts. ?>
     <dialog id="member-status-<?= $id ?>" class="staff-dialog staff-dialog-sm">
       <form class="stacked-form" method="post" action="<?= e(Url::to('/admin/users/' . $id)) ?>">
         <input type="hidden" name="_csrf" value="<?= e(Csrf::token()) ?>">
@@ -531,7 +532,7 @@ $currentDate = $filter_date ?? (string) ($_GET['filter_date'] ?? $_GET['date'] ?
     </dialog>
   <?php endif; ?>
 
-  <?php if (Auth::can('users.delete') && $id !== (int) Auth::user()['id']): ?>
+  <?php if (Auth::can('users.delete') && $id !== (int) Auth::user()['id']): // Render permanent deletion modal for accounts other than self. ?>
     <dialog id="staff-delete-<?= $id ?>" class="staff-dialog staff-dialog-sm">
       <form method="post" action="<?= e(Url::to('/admin/users/' . $id . '/delete')) ?>" class="stacked-form">
         <input type="hidden" name="_csrf" value="<?= e(Csrf::token()) ?>">
@@ -552,8 +553,8 @@ $currentDate = $filter_date ?? (string) ($_GET['filter_date'] ?? $_GET['date'] ?
         </div>
       </form>
     </dialog>
-  <?php endif; ?>
-<?php endforeach; ?>
+  <?php endif; // End permanent deletion modal. ?>
+<?php endforeach; // End per-user action modal loop. ?>
 
 <script>
 // Update a single query parameter for column sorting/filtering and reload.

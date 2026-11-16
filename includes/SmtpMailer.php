@@ -26,9 +26,11 @@ final class SmtpMailer
      */
     public static function isConfigured(): bool
     {
+        // Treat HTTPS mail API or webhook environment variables as configured.
         if (trim((string) (getenv('JOKE_BREVO_API_KEY') ?: '')) !== '' || trim((string) (getenv('JOKE_MAIL_WEBHOOK_URL') ?: '')) !== '') {
             return true;
         }
+        // Otherwise check whether SMTP credentials and sender address are set in config.
         $config = require dirname(__DIR__) . '/config/config.php';
         $mail = $config['mail'] ?? [];
         return trim((string) ($mail['username'] ?? '')) !== ''
@@ -41,9 +43,11 @@ final class SmtpMailer
      */
     public static function isLocalDevFallback(): bool
     {
+        // Never use local dev fallback when any mail transport is configured.
         if (self::isConfigured()) {
             return false;
         }
+        // Normalize the request host (strip port) and allow fallback only on loopback addresses.
         $host = strtolower((string) ($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? ''));
         $host = preg_replace('/:\d+$/', '', $host);
         return in_array($host, ['localhost', '127.0.0.1', '::1'], true);
@@ -174,10 +178,12 @@ final class SmtpMailer
      */
     private function postJson(string $url, string $jsonPayload, array $headers): void
     {
+        // Require the cURL extension for outbound HTTPS API/webhook calls.
         if (!function_exists('curl_init')) {
             throw new \RuntimeException('PHP cURL extension is required for HTTPS email delivery.');
         }
 
+        // Configure a 20-second POST request without automatic redirect following.
         $ch = curl_init($url);
         curl_setopt_array($ch, [
             CURLOPT_POST           => true,
@@ -188,16 +194,19 @@ final class SmtpMailer
             CURLOPT_TIMEOUT        => 20,
         ]);
 
+        // Execute the request and collect response body, error, status code, and redirect URL.
         $body = curl_exec($ch);
         $err = curl_error($ch);
         $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $redirectUrl = (string) curl_getinfo($ch, CURLINFO_REDIRECT_URL);
         curl_close($ch);
 
+        // Abort if cURL failed at the transport layer.
         if ($body === false) {
             throw new \RuntimeException('Email API error: ' . $err);
         }
 
+        // Follow 3xx redirects via GET (required for Google Apps Script Web App webhooks).
         if ($code >= 300 && $code < 400 && $redirectUrl !== '') {
             $ch2 = curl_init($redirectUrl);
             curl_setopt_array($ch2, [
@@ -217,12 +226,14 @@ final class SmtpMailer
             $code = $code2;
         }
 
+        // Reject non-2xx HTTP responses with a truncated error message.
         if ($code < 200 || $code >= 300) {
             $decoded = json_decode((string) $body, true);
             $msg = is_array($decoded) ? ($decoded['message'] ?? $decoded['error'] ?? (string) $body) : (string) $body;
             throw new \RuntimeException('Email API returned HTTP ' . $code . ': ' . mb_substr((string) $msg, 0, 200));
         }
 
+        // Check webhook JSON payloads that report application-level failure via ok === false.
         $decoded = json_decode((string) $body, true);
         if (is_array($decoded) && isset($decoded['ok']) && $decoded['ok'] === false) {
             throw new \RuntimeException('Email webhook error: ' . (string) ($decoded['error'] ?? 'Unknown error'));

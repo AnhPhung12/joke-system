@@ -32,11 +32,11 @@ use App\Core\{Csrf, Url}; // Import CSRF and URL helpers
                 Code expires in <strong id="otp-countdown" data-expires-at="<?= (int) $expiresAt ?>">10:00</strong>
             </p>
 
-            <?php if (!empty($_SESSION['reset_local_otp'])): ?>
+            <?php if (!empty($_SESSION['reset_local_otp'])): // Show local test OTP banner when mail is not configured ?>
                 <div style="margin:0.75rem 0 1rem;padding:0.75rem 1rem;border-radius:10px;background:rgba(255,209,102,0.14);border:1px solid rgba(255,209,102,0.4);color:#ffd166;font-size:0.9rem;text-align:center;">
                     Local Test Mode (mail not configured) — Your OTP: <strong style="font-size:1.1rem;letter-spacing:3px;"><?= e((string) $_SESSION['reset_local_otp']) ?></strong>
                 </div>
-            <?php endif; ?>
+            <?php endif; // End local test OTP banner ?>
 
             <!-- Hidden CSRF token and combined 4-digit OTP value -->
             <input type="hidden" name="_csrf" value="<?= e(Csrf::token()) ?>">

@@ -78,8 +78,10 @@ final class PasswordResetController
                 $otp = (new PasswordReset())->createForEmail($email);
                 // Send the OTP email when a code was generated.
                 if ($otp !== null) {
+                    // Expose the OTP in session only when local dev fallback mode is active.
                     $_SESSION['reset_local_otp'] = SmtpMailer::isLocalDevFallback() ? $otp : null;
                     (new SmtpMailer())->sendPasswordOtp($email, $otp);
+                    // Override the generic flash message with the OTP during local testing.
                     if (!empty($_SESSION['reset_local_otp'])) {
                         $message = 'Local Test Mode (mail not configured): Your 4-digit OTP is ' . $_SESSION['reset_local_otp'] . '.';
                     }

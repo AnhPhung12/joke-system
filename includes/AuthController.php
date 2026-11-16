@@ -98,6 +98,7 @@ final class AuthController
             Url::redirect('/dashboard');
         }
 
+        // Check for an active, unexpired registration OTP session and clear expired state
         $pending = $_SESSION['register_otp'] ?? null;
         $otpPending = is_array($pending) && time() <= (int) ($pending['expires_at'] ?? 0);
         if (!$otpPending) {
@@ -149,19 +150,23 @@ final class AuthController
         // Validate CSRF token on registration submission
         Csrf::enforce();
 
+        // Dispatch based on the submitted registration step action
         $action = (string) ($_POST['action'] ?? 'send_otp');
 
+        // Clear pending OTP state and restart registration when cancelled
         if ($action === 'cancel_otp') {
             unset($_SESSION['register_otp']);
             Url::redirect('/register');
         }
 
+        // Regenerate and resend a fresh 4-digit OTP for an active pending registration
         if ($action === 'resend_otp') {
             $pending = $_SESSION['register_otp'] ?? null;
             if (!is_array($pending) || empty($pending['email'])) {
                 Session::flash('Your registration session expired. Please fill in your details again.');
                 Url::redirect('/register');
             }
+            // Issue a new 4-digit code with a fresh 10-minute expiry and reset attempt counter
             $otp = str_pad((string) random_int(0, 9999), 4, '0', STR_PAD_LEFT);
             $pending['code_hash'] = hash('sha256', $otp);
             $pending['expires_at'] = time() + 600;
@@ -169,6 +174,7 @@ final class AuthController
             $pending['local_otp'] = SmtpMailer::isLocalDevFallback() ? $otp : null;
             $_SESSION['register_otp'] = $pending;
 
+            // Send the new verification code via configured mail transport
             try {
                 (new SmtpMailer())->sendPasswordOtp(
                     (string) $pending['email'],
@@ -186,16 +192,19 @@ final class AuthController
             Url::redirect('/register');
         }
 
+        // Verify the submitted 4-digit OTP and create the user account on match
         if ($action === 'verify_otp') {
             $pending = $_SESSION['register_otp'] ?? null;
             $otp = trim((string) ($_POST['otp'] ?? ''));
 
+            // Reject missing or expired registration OTP sessions
             if (!is_array($pending) || time() > (int) ($pending['expires_at'] ?? 0)) {
                 unset($_SESSION['register_otp']);
                 Session::flash('Verification code expired. Please sign up again.');
                 Url::redirect('/register');
             }
 
+            // Validate 4-digit OTP against stored hash and lock out after 5 failed attempts
             if (!preg_match('/^\d{4}$/', $otp) || !hash_equals((string) ($pending['code_hash'] ?? ''), hash('sha256', $otp))) {
                 $pending['attempts'] = (int) ($pending['attempts'] ?? 0) + 1;
                 if ($pending['attempts'] >= 5) {
@@ -208,6 +217,7 @@ final class AuthController
                 Url::redirect('/register');
             }
 
+            // Persist the verified user account and handle duplicate-key race conditions
             try {
                 (new User())->create(
                     (string) $pending['username'],
@@ -228,6 +238,7 @@ final class AuthController
                 Url::redirect('/register');
             }
 
+            // Redirect newly registered user to sign in
             Session::flash('Registration successful! Please sign in.');
             Url::redirect('/login');
         }
@@ -251,11 +262,13 @@ final class AuthController
             Url::redirect('/register');
         }
 
+        // Reject registration early if the username or email is already taken
         if ((new User())->exists($username, $email)) {
             Session::flash('Username or email already exists.');
             Url::redirect('/register');
         }
 
+        // Generate a 4-digit OTP and store pending registration state in session for 10 minutes
         $otp = str_pad((string) random_int(0, 9999), 4, '0', STR_PAD_LEFT);
         $localOtp = SmtpMailer::isLocalDevFallback() ? $otp : null;
         $_SESSION['register_otp'] = [
@@ -269,6 +282,7 @@ final class AuthController
             'local_otp'  => $localOtp,
         ];
 
+        // Email the verification code or roll back pending session state on failure
         try {
             (new SmtpMailer())->sendPasswordOtp(
                 $email,
@@ -285,6 +299,7 @@ final class AuthController
             Session::flash('Could not send verification email. Please check email settings and try again.');
         }
 
+        // Redirect back to render the OTP verification stage or flash error
         Url::redirect('/register');
     }
 

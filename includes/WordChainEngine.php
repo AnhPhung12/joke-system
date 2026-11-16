@@ -56,6 +56,7 @@ final class WordChainEngine implements GameEngine
             $available = self::TOPICS;
         }
 
+        // Use a curated starter word per topic when running in localhost offline fallback mode.
         if (!GeminiClient::configured() && GeminiClient::isLocalFallback()) {
             $starters = [
                 'School' => 'teacher', 'Animals' => 'tiger', 'Food' => 'apple',
@@ -154,9 +155,11 @@ final class WordChainEngine implements GameEngine
 
         // Proceed to AI semantic validation and counter-move only if local checks passed.
         if ($error === null) {
+            // Handle local offline fallback mode by picking an unused topic word directly.
             if (!GeminiClient::configured() && GeminiClient::isLocalFallback()) {
                 $need = substr($word, -1);
                 $ai = $this->pickFallbackWord($topic, $need, array_merge($used, [$word]));
+                // Record accepted player word and optional AI reply in session state.
                 $state['used'][] = $word;
                 if ($ai !== null) {
                     $state['used'][] = $ai;
@@ -249,6 +252,7 @@ final class WordChainEngine implements GameEngine
      */
     private function pickFallbackWord(string $topic, string $need, array $usedAll): ?string
     {
+        // Curated per-topic fallback word lists indexed by topic name.
         $byTopic = [
             'Animals' => ['ant','alligator','alpaca','bear','bat','beaver','cat','camel','cheetah','dog','dolphin','duck','eagle','elephant','emu','fox','frog','falcon','giraffe','goat','goose','horse','hawk','hippo','iguana','ibis','jaguar','jellyfish','kangaroo','koala','kiwi','lion','leopard','llama','monkey','mouse','moose','newt','narwhal','owl','otter','ostrich','panda','penguin','parrot','quail','rabbit','raccoon','rhino','snake','shark','seal','tiger','turtle','toucan','urchin','vulture','viper','whale','wolf','walrus','xerus','yak','zebra'],
             'Food' => ['apple','avocado','almond','banana','bread','burger','cake','cheese','carrot','donut','dumpling','egg','eggplant','fig','fish','fries','grape','garlic','honey','ham','icecream','jam','juice','kiwi','kale','lemon','lime','mango','melon','milk','noodle','nut','orange','olive','onion','pizza','pasta','pear','quinoa','rice','radish','salad','soup','steak','toast','tomato','udon','vanilla','waffle','watermelon','yam','yogurt','zucchini'],
@@ -262,12 +266,14 @@ final class WordChainEngine implements GameEngine
             'Health' => ['ankle','aspirin','apple','bandage','balance','blood','clinic','cardio','calm','diet','doctor','dose','energy','exercise','exam','fever','fitness','fiber','glucose','gym','heal','heart','herb','immune','injury','jogging','joint','kidney','knee','lung','medicine','muscle','nurse','nutrition','oxygen','organ','pulse','protein','pill','rest','recovery','sleep','spine','strength','therapy','tonic','ultrasound','vaccine','vitamin','water','wellness','xray','yoga','zinc'],
         ];
 
+        // Return the first unused topic word matching the required starting letter.
         foreach ($byTopic[$topic] ?? [] as $cand) {
             if ($cand[0] === $need && !in_array($cand, $usedAll, true)) {
                 return $cand;
             }
         }
 
+        // Fall back to a general a-z word pool if all topic-specific words are exhausted.
         $general = [
             'a' => ['apple', 'anchor', 'arrow'], 'b' => ['book', 'bridge', 'boat'],
             'c' => ['camera', 'clock', 'cloud'], 'd' => ['desk', 'door', 'drum'],

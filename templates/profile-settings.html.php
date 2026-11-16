@@ -155,6 +155,7 @@ $joinedTime = $rawJoined !== '' ? date('H:i:s', strtotime($rawJoined)) : '—'; 
             <h2><?= e($profile['username']) ?></h2>
             <p><?= e($profile['email']) ?></p>
 
+            <!-- Account join date/time (localized client-side via [data-local-dt]) and optional location -->
             <div class="settings-joined-meta">
                 <span class="joined-badge">
                     <svg class="joined-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13" aria-hidden="true">

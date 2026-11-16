@@ -51,6 +51,7 @@ final class Database
             ];
             // Enable TLS/SSL automatically for cloud MySQL hosts such as TiDB Cloud
             if (!in_array($d['host'], ['localhost', '127.0.0.1', '::1'], true)) {
+                // Use configured CA bundle when present, or skip server cert verification as fallback
                 $caPath = getenv('JOKE_DB_SSL_CA') ?: '/etc/ssl/certs/ca-certificates.crt';
                 if (is_file($caPath)) {
                     $options[PDO::MYSQL_ATTR_SSL_CA] = $caPath;
@@ -58,7 +59,7 @@ final class Database
                     $options[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = false;
                 }
             }
-            // Instantiate PDO connection
+            // Instantiate PDO connection and align session time zone to UTC+7
             self::$connection = new PDO($dsn, $d['user'], $d['pass'], $options);
             self::$connection->exec("SET time_zone = '+07:00'");
         } catch (PDOException $e) {

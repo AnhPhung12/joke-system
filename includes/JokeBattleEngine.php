@@ -33,13 +33,16 @@ final class JokeBattleEngine implements GameEngine
      */
     public function reply(string $message, array $history): array
     {
+        // Detect Vietnamese/English translation or explanation requests
         $askTranslate = (bool) preg_match(
             '/(?:nghĩa\s*tiếng\s*việt|tiếng\s*việt|dịch|giải\s*thích|translate|what\s+does\s+.*\s+mean)/iu',
             trim($message)
         );
 
+        // Serve deterministic offline responses on localhost when no API key is configured
         if (!GeminiClient::configured() && GeminiClient::isLocalFallback()) {
             if ($askTranslate) {
+                // Return a general pun-translation note without scoring
                 return [
                     'valid'    => true,
                     'score'    => 0,
@@ -47,6 +50,8 @@ final class JokeBattleEngine implements GameEngine
                     'ai'       => 'Đây là câu chơi chữ tiếng Anh nên khi dịch sát nghĩa sẽ mất độ hài gốc, nhưng ý là nói vui theo kiểu đồng âm/chơi chữ. Bạn kể tiếp 1 câu joke tiếng Anh khác nhé! (Local Offline Mode)',
                 ];
             }
+
+            // Pick a canned counter-joke and compute a deterministic length-based score
             $jokes = [
                 'Why do programmers prefer dark mode? Because light attracts bugs!',
                 'I told my computer I needed a break, and now it will not stop sending me Kit-Kat ads.',
@@ -65,6 +70,7 @@ final class JokeBattleEngine implements GameEngine
             ];
         }
 
+        // Ask Gemini to translate/explain the previous joke without rating the question as a joke
         if ($askTranslate) {
             $rules = 'You are Baby Joke, a friendly English joke bot. The user is NOT telling a joke right now; they are asking you to translate or explain your previous joke in Vietnamese ("' . $message . '"). Translate your previous joke into natural Vietnamese and briefly explain the pun/wordplay in Vietnamese. Do NOT rate their question as a joke. Return JSON keys score (0), feedback (your Vietnamese translation and explanation), ai_joke (empty string "").';
             $r = (new GeminiClient())->json($rules, $message, $history);

@@ -65,7 +65,7 @@ $modeIntro = [ // Map game_type keys to initial Baby Joke welcome instructions
         <div class="pg-chat-scroll" id="pg-chat-scroll" role="log" aria-live="polite">
             <?php if (!$messages): // Show fallback note for legacy sessions without turns ?>
                 <div class="pg-bubble pg-ai">This older session has no saved turns yet.</div>
-            <?php endif; ?>
+            <?php endif; // End legacy empty transcript check ?>
 
             <!-- Always display the mode introduction bubble first -->
             <div class="pg-bubble pg-ai"><?= e($modeIntro[$type] ?? 'Let’s play!') ?></div>
@@ -95,11 +95,11 @@ $modeIntro = [ // Map game_type keys to initial Baby Joke welcome instructions
                 <div class="pg-punchline-help">
                     Stuck? Type <strong>I don't know</strong> to reveal the punchline and get a new question.
                 </div>
-            <?php elseif ($type === 'word_chain'): ?>
+            <?php elseif ($type === 'word_chain'): // Show skip hint for Word Chain mode ?>
                 <div class="pg-punchline-help">
                     Stuck? Type <strong>I don't know</strong> to forfeit this round and switch to a new topic.
                 </div>
-            <?php endif; ?>
+            <?php endif; // End mode-specific skip hint check ?>
 
             <!-- Turn submission form with CSRF protection -->
             <form class="pg-composer" method="post" action="<?= e(\App\Core\Url::to('/playground/' . $game['id'] . '/turn')) ?>">
@@ -118,13 +118,13 @@ $modeIntro = [ // Map game_type keys to initial Baby Joke welcome instructions
         <?php else: // Show completed state bar with Play Again / New Topic link ?>
             <div class="pg-composer pg-composer-idle">
                 <span>Game completed</span>
-                <?php if ($type === 'word_chain'): ?>
+                <?php if ($type === 'word_chain'): // Offer quick-start button for a new Word Chain topic ?>
                     <form method="post" action="<?= e(\App\Core\Url::to('/playground/start')) ?>" style="display:inline;margin:0">
                         <input type="hidden" name="_csrf" value="<?= e(\App\Core\Csrf::token()) ?>">
                         <input type="hidden" name="type" value="word_chain">
                         <button type="submit" class="btn primary" style="padding:8px 16px;font-size:14px">Play new topic ↻</button>
                     </form>
-                <?php endif; ?>
+                <?php endif; // End Word Chain quick-start branch ?>
                 <a href="<?= e(\App\Core\Url::to('/playground')) ?>">Play again ↗</a>
             </div>
         <?php endif; // End active vs. completed composer branch ?>
@@ -136,6 +136,7 @@ $modeIntro = [ // Map game_type keys to initial Baby Joke welcome instructions
     document.addEventListener('DOMContentLoaded', function() {
         const el = document.getElementById('pg-chat-scroll');
         if (!el) return;
+        // Scroll transcript container to the newest message
         const bottom = () => {
             el.scrollTop = el.scrollHeight;
         };

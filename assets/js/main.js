@@ -1,4 +1,5 @@
 'use strict';
+// Highlight active sidebar navigation link and attach confirmation prompts to [data-confirm] forms
 document.addEventListener('DOMContentLoaded', () => {
   const path = window.location.pathname.replace(/\/$/, '');
   document.querySelectorAll('.side-nav a').forEach(link => {
@@ -12,6 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
+// Mirror sidebar links and logo into a horizontal top navbar on user-area pages
 document.addEventListener('DOMContentLoaded', () => {
   if (!document.body.classList.contains('user-area')) return;
   const sidebar = document.querySelector('.sidebar');
@@ -32,6 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
   topTitle.replaceChildren(logoClone, navbar);
 });
 
+// Prepend the sidebar avatar to the top greeting and make it a clickable profile quick-link
 document.addEventListener('DOMContentLoaded', () => {
   const greeting = document.querySelector('.hello');
   const sidebarAvatar = document.querySelector('.sidebar-account .account-avatar');
@@ -50,6 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
   greeting.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openProfile(); } });
 });
 
+// Replace sparkle emoji in .top-title with the inline chibi mascot icon
 document.addEventListener('DOMContentLoaded', () => {
   const title = document.querySelector('.top-title');
   if (!title || !title.textContent.includes('✨')) return;
@@ -60,6 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
   title.append(' ', mascot);
 });
 
+// Inject inline edit button and form for comments that already have a delete form
 document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.comment').forEach(comment => {
     const deleteForm = comment.querySelector('form[action*="delete-comment.php"]');
@@ -87,6 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
+// Interactive hero mood selector: cycle chibi face, speech bubble, and active state
 document.addEventListener('DOMContentLoaded', () => {
   const cluster = document.querySelector('.hero-mood');
   if (!cluster) return;
@@ -107,6 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
   showFace(0);
 });
 
+// Horizontal scroll controls for profile favourite jokes and comments strips
 document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.profile-secondary-grid .panel').forEach(panel => {
     const strip = panel.querySelector('[data-horizontal-strip]');
@@ -118,6 +125,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
+// Notification bell dropdown toggle, outside-click/Escape close, and AJAX mark-as-read
 document.addEventListener('DOMContentLoaded', () => {
   const btn = document.getElementById('bell-trigger');
   const panel = document.getElementById('bell-panel');
@@ -184,6 +192,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
+// Collapsible avatar picker toggle and client-side circular canvas crop/upload modal
 document.addEventListener('DOMContentLoaded', () => {
   const picker = document.getElementById('avatar-picker');
   const toggles = document.querySelectorAll('[data-toggle-avatar-picker]');
@@ -205,12 +214,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const context = canvas.getContext('2d');
   const state = { image: null, scale: 1, baseScale: 1, x: 0, y: 0, dragging: false, startX: 0, startY: 0, originX: 0, originY: 0, objectUrl: null };
   const size = canvas.width;
+  // Constrain pan coordinates so the image always covers the circular crop area
   const clamp = () => {
     const width = state.image.width * state.scale;
     const height = state.image.height * state.scale;
     state.x = Math.min(0, Math.max(size - width, state.x));
     state.y = Math.min(0, Math.max(size - height, state.y));
   };
+  // Render the clipped circular preview and border ring onto the canvas
   const draw = () => {
     if (!state.image) return;
     context.clearRect(0, 0, size, size);
@@ -274,6 +285,7 @@ document.addEventListener('DOMContentLoaded', () => {
   canvas.addEventListener('pointerup', stopDrag); canvas.addEventListener('pointercancel', stopDrag);
   cancel.addEventListener('click', close);
   dialog.addEventListener('cancel', event => { event.preventDefault(); close(); });
+  // Export cropped canvas as PNG and submit via multipart FormData
   save.addEventListener('click', () => {
     save.disabled = true; save.textContent = 'Saving…';
     canvas.toBlob(blob => {
@@ -289,6 +301,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
+// Wrap password inputs with a show/hide visibility toggle button
 document.addEventListener('DOMContentLoaded', () => {
   const eyeShow = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
   const eyeHide = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
@@ -318,6 +331,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
+// Format [data-local-dt] ISO timestamps into the visitor's local date and time
 document.addEventListener('DOMContentLoaded', () => {
   const pad = n => String(n).padStart(2, '0');
   document.querySelectorAll('[data-local-dt]').forEach(el => {

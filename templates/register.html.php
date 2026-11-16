@@ -8,37 +8,42 @@
  */
 
 use App\Core\{Csrf, Url}; // Import CSRF and URL helpers
-$isOtpStep = !empty($otpPending);
+$isOtpStep = !empty($otpPending); // Flag whether registration is in the email OTP verification step
 ?>
 <!-- User registration card layout -->
 <section class="auth-wrap">
+    <!-- Dynamic mascot and heading based on registration step -->
     <div class="auth-art">
         <div class="mascot small"><?= $isOtpStep ? '🔢' : '◕ᴗ◕' ?></div>
         <h2><?= $isOtpStep ? 'Verify your email' : 'Join the fun!' ?></h2>
         <p><?= $isOtpStep ? 'Enter the 4-digit code sent to your email.' : 'Your happy corner starts here.' ?></p>
     </div>
 
-    <?php if ($isOtpStep): ?>
+    <?php if ($isOtpStep): // Render email OTP verification form during step 2 ?>
+        <!-- Step 2: 4-digit email OTP verification form -->
         <form class="auth-card" id="reg-otp-form" method="post" action="<?= e(Url::to('/register')) ?>">
             <span class="eyebrow">STEP 2 OF 2</span>
             <h1>Enter OTP code</h1>
             <p>We sent a 4-digit verification code to <strong><?= e((string) ($otpEmail ?? '')) ?></strong>.</p>
+            <!-- Live countdown element seeded with server-side Unix expiration timestamp -->
             <p class="otp-timer">
                 Code expires in <strong id="reg-otp-countdown" data-expires-at="<?= (int) ($otpExpiresAt ?? 0) ?>">10:00</strong>
             </p>
 
-            <?php if (!empty($localOtp)): ?>
+            <?php if (!empty($localOtp)): // Show local test OTP banner when mail is not configured ?>
                 <div style="margin:0.75rem 0 1rem;padding:0.75rem 1rem;border-radius:10px;background:rgba(255,209,102,0.14);border:1px solid rgba(255,209,102,0.4);color:#7a5a00;font-size:0.9rem;text-align:center;">
                     Local Test Mode (mail not configured) — Your OTP: <strong style="font-size:1.1rem;letter-spacing:3px;"><?= e((string) $localOtp) ?></strong>
                 </div>
-            <?php endif; ?>
+            <?php endif; // End local test OTP banner ?>
 
+            <!-- Hidden CSRF token, verification action, and combined 4-digit OTP value -->
             <input type="hidden" name="_csrf" value="<?= e(Csrf::token()) ?>">
             <input type="hidden" name="action" value="verify_otp">
             <input type="hidden" name="otp" id="reg-otp-value">
 
+            <!-- Four individual numeric input boxes for the OTP -->
             <div class="otp-inputs" aria-label="Four-digit verification code">
-                <?php for ($i = 0; $i < 4; $i++): ?>
+                <?php for ($i = 0; $i < 4; $i++): // Loop to render 4 single-digit OTP input fields ?>
                     <input
                         class="otp-digit"
                         inputmode="numeric"
@@ -48,24 +53,28 @@ $isOtpStep = !empty($otpPending);
                         aria-label="Code digit <?= $i + 1 ?>"
                         required
                     >
-                <?php endfor; ?>
+                <?php endfor; // End OTP digit loop ?>
             </div>
 
             <button class="btn primary full" type="submit">Verify &amp; Create Account →</button>
 
+            <!-- Secondary actions to resend OTP or return to registration form -->
             <div style="display:flex;justify-content:space-between;gap:10px;margin-top:14px;">
                 <button class="btn ghost" type="submit" name="action" value="resend_otp" formnovalidate style="margin-top:0;flex:1;">Resend code</button>
                 <button class="btn ghost" type="submit" name="action" value="cancel_otp" formnovalidate style="margin-top:0;flex:1;">← Back</button>
             </div>
         </form>
+        <!-- Registration OTP digit auto-advance, paste handling, auto-submit, and expiration countdown -->
         <script>
         document.addEventListener('DOMContentLoaded', () => {
             const form = document.getElementById('reg-otp-form');
             const digits = [...form.querySelectorAll('.otp-digit')];
             const hidden = document.getElementById('reg-otp-value');
             const cd = document.getElementById('reg-otp-countdown');
+            // Sync individual digit boxes into the hidden OTP input
             const sync = () => { hidden.value = digits.map(d => d.value.replace(/\D/g, '')).join(''); };
 
+            // Attach input, backspace navigation, and paste handlers to each digit box
             digits.forEach((d, idx) => {
                 d.addEventListener('input', () => {
                     d.value = d.value.replace(/\D/g, '').slice(-1);
@@ -85,9 +94,11 @@ $isOtpStep = !empty($otpPending);
                     if (hidden.value.length === 4) form.requestSubmit();
                 });
             });
+            // Focus first digit on load and sync value before submission
             if (digits[0]) digits[0].focus();
             form.addEventListener('submit', sync);
 
+            // Update countdown timer every second until expiration
             if (cd) {
                 const exp = parseInt(cd.dataset.expiresAt || '0', 10);
                 const tick = () => {
@@ -101,7 +112,7 @@ $isOtpStep = !empty($otpPending);
             }
         });
         </script>
-    <?php else: ?>
+    <?php else: // Render initial account registration form during step 1 ?>
     <!-- Account registration form posting to /register with escaped action URL -->
     <form class="auth-card" method="post" action="<?= e(Url::to('/register')) ?>">
         <span class="eyebrow">CREATE AN ACCOUNT</span>
@@ -151,6 +162,7 @@ $isOtpStep = !empty($otpPending);
             Already have an account? <a href="<?= e(Url::to('/login')) ?>">Sign in</a>
         </p>
     </form>
+    <!-- Pre-fill location field from the visitor's browser timezone -->
     <script>
     document.addEventListener('DOMContentLoaded', () => {
         const loc = document.getElementById('reg-location');
@@ -173,5 +185,5 @@ $isOtpStep = !empty($otpPending);
         } catch (e) {}
     });
     </script>
-    <?php endif; ?>
+    <?php endif; // End registration step conditional ?>
 </section>

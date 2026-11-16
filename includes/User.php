@@ -79,6 +79,7 @@ final class User
      */
     public function exists(string $username, string $email): bool
     {
+        // Query whether any user row already uses the given username or email.
         $s = $this->db->prepare('SELECT 1 FROM users WHERE username = ? OR email = ? LIMIT 1');
         $s->execute([$username, $email]);
         return (bool) $s->fetchColumn();
@@ -93,6 +94,7 @@ final class User
         $this->db->beginTransaction();
 
         try {
+            // Normalize location (max 120 chars) and hash the password unless already hashed.
             $loc = trim($location) !== '' ? mb_substr(trim($location), 0, 120) : 'Vietnam';
             $hash = $alreadyHashed ? $password : password_hash($password, PASSWORD_DEFAULT);
 
