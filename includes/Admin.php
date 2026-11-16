@@ -96,7 +96,7 @@ final class Admin
      * @param string $date Optional creation date filter (YYYY-MM-DD).
      * @return array<int, array<string, mixed>>
      */
-    public function users(string $q = '', string $role = '', string $sort = 'newest', string $date = ''): array
+    public function users(string $q = '', string $role = '', string $sort = 'newest', string $date = '', string $status = ''): array
     {
         // Base search predicate across username, email, and location (hide deleted/anonymized users)
         $where = [
@@ -132,6 +132,17 @@ final class Admin
             $params[] = $date;
         }
 
+        // Optional account status filter ('active' or 'suspended')
+        $targetStatus = match (strtolower(trim($status))) {
+            'active', 'unsuspended' => 'active',
+            'suspended', 'banned' => 'suspended',
+            default => '',
+        };
+        if ($targetStatus !== '') {
+            $where[] = 'u.status = ?';
+            $params[] = $targetStatus;
+        }
+
         // Whitelist-mapped ORDER BY clause to prevent SQL injection
         $orderBy = match ($sort) {
             'name_asc' => 'u.username ASC',
@@ -142,6 +153,8 @@ final class Admin
             'jokes_asc' => 'joke_count ASC, u.id ASC',
             'role_asc', 'role' => 'roles ASC, u.id DESC',
             'role_desc' => 'roles DESC, u.id DESC',
+            'status_suspended' => "CASE WHEN u.status = 'suspended' THEN 0 ELSE 1 END ASC, u.id DESC",
+            'status_active' => "CASE WHEN u.status = 'active' THEN 0 ELSE 1 END ASC, u.id DESC",
             'date_desc', 'newest' => 'u.created_at DESC, u.id DESC',
             'date_asc', 'oldest' => 'u.created_at ASC, u.id ASC',
             'time_asc', 'earliest' => 'TIME(u.created_at) ASC, u.id ASC',

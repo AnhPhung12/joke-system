@@ -17,9 +17,10 @@
 
 use App\Core\{Auth, Csrf, Url}; // Import auth, CSRF token, and URL helpers.
 
-// Resolve active search, role filter, sort, and date filter from controller or query string.
+// Resolve active search, role filter, status filter, sort, and date filter from controller or query string.
 $currentQ = $q ?? (string) ($_GET['q'] ?? ''); // Active search keyword.
 $currentRole = $role ?? (string) ($_GET['filter_role'] ?? $_GET['role'] ?? ''); // Active role filter slug.
+$currentStatus = $filter_status ?? (string) ($_GET['filter_status'] ?? $_GET['status'] ?? ''); // Active status filter slug.
 $currentSort = $sort ?? (string) ($_GET['sort'] ?? ''); // Active column sort order.
 $currentDate = $filter_date ?? (string) ($_GET['filter_date'] ?? $_GET['date'] ?? ''); // Active creation date filter.
 ?>
@@ -48,6 +49,9 @@ $currentDate = $filter_date ?? (string) ($_GET['filter_date'] ?? $_GET['date'] ?
     <?php if ($currentRole !== ''): ?>
       <input type="hidden" name="filter_role" value="<?= e($currentRole) ?>">
     <?php endif; ?>
+    <?php if ($currentStatus !== ''): ?>
+      <input type="hidden" name="filter_status" value="<?= e($currentStatus) ?>">
+    <?php endif; ?>
     <?php if ($currentDate !== ''): ?>
       <input type="hidden" name="filter_date" value="<?= e($currentDate) ?>">
     <?php endif; ?>
@@ -55,7 +59,7 @@ $currentDate = $filter_date ?? (string) ($_GET['filter_date'] ?? $_GET['date'] ?
       <input type="hidden" name="sort" value="<?= e($currentSort) ?>">
     <?php endif; ?>
     <button class="btn primary">Search</button>
-    <?php if ($currentQ !== '' || $currentRole !== '' || $currentDate !== '' || ($currentSort !== '' && $currentSort !== 'newest')): ?>
+    <?php if ($currentQ !== '' || $currentRole !== '' || $currentStatus !== '' || $currentDate !== '' || ($currentSort !== '' && $currentSort !== 'newest')): ?>
       <a class="btn ghost" href="<?= e(Url::to('/admin/users')) ?>">Clear</a>
     <?php endif; ?>
   </form>
@@ -188,6 +192,40 @@ $currentDate = $filter_date ?? (string) ($_GET['filter_date'] ?? $_GET['date'] ?
           <th class="th-status">
             <div class="th-header-cell">
               <span class="th-title">Status</span>
+              <details class="th-dropdown" id="dd-status">
+                <summary class="th-icon-btn <?= !empty($currentStatus) || str_starts_with($currentSort, 'status_') ? 'is-active' : '' ?>" title="Filter or Sort Status" aria-label="Filter or Sort Status">
+                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                  <?php if (!empty($currentStatus) || str_starts_with($currentSort, 'status_')): ?><span class="th-active-dot"></span><?php endif; ?>
+                </summary>
+                <div class="th-menu">
+                  <div class="th-menu-title">Filter by Status</div>
+                  <button type="button" class="th-menu-item <?= $currentStatus === '' ? 'is-selected' : '' ?>" onclick="submitColFilter('filter_status', '')">
+                    <span>All Statuses</span>
+                    <?= $currentStatus === '' ? '<span class="th-check">✓</span>' : '' ?>
+                  </button>
+                  <button type="button" class="th-menu-item <?= $currentStatus === 'active' ? 'is-selected' : '' ?>" onclick="submitColFilter('filter_status', 'active')">
+                    <span>Active (Unsuspended)</span>
+                    <?= $currentStatus === 'active' ? '<span class="th-check">✓</span>' : '' ?>
+                  </button>
+                  <button type="button" class="th-menu-item <?= $currentStatus === 'suspended' ? 'is-selected' : '' ?>" onclick="submitColFilter('filter_status', 'suspended')">
+                    <span>Suspended (Banned)</span>
+                    <?= $currentStatus === 'suspended' ? '<span class="th-check">✓</span>' : '' ?>
+                  </button>
+                  <div class="th-menu-divider"></div>
+                  <div class="th-menu-title">Sort by Status</div>
+                  <button type="button" class="th-menu-item <?= $currentSort === 'status_suspended' ? 'is-selected' : '' ?>" onclick="submitColFilter('sort', 'status_suspended')">
+                    <span>Suspended First</span>
+                    <?= $currentSort === 'status_suspended' ? '<span class="th-check">✓</span>' : '' ?>
+                  </button>
+                  <button type="button" class="th-menu-item <?= $currentSort === 'status_active' ? 'is-selected' : '' ?>" onclick="submitColFilter('sort', 'status_active')">
+                    <span>Active First</span>
+                    <?= $currentSort === 'status_active' ? '<span class="th-check">✓</span>' : '' ?>
+                  </button>
+                  <?php if (!empty($currentStatus) || str_starts_with($currentSort, 'status_')): ?>
+                    <button type="button" class="th-menu-item th-menu-clear" onclick="submitColFilter('filter_status', ''); submitColFilter('sort', '');">Reset Status</button>
+                  <?php endif; ?>
+                </div>
+              </details>
             </div>
           </th>
 

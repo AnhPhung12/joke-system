@@ -58,11 +58,12 @@ final class AdminController
         // Read query filters from GET parameters
         $q = trim((string) ($_GET['q'] ?? ''));
         $role = trim((string) ($_GET['filter_role'] ?? $_GET['role'] ?? ''));
+        $status = trim((string) ($_GET['filter_status'] ?? $_GET['status'] ?? ''));
         $sort = trim((string) ($_GET['sort'] ?? 'newest'));
         $date = trim((string) ($_GET['filter_date'] ?? $_GET['date'] ?? ''));
 
         // Fetch filtered and sorted user records
-        $users = $a->users($q, $role, $sort, $date);
+        $users = $a->users($q, $role, $sort, $date, $status);
 
         // Load per-moderator permission overrides for display in the staff matrix
         $perms = [];
@@ -79,6 +80,7 @@ final class AdminController
             'q' => $q,
             'role' => $role,
             'filter_role' => $role,
+            'filter_status' => $status,
             'sort' => $sort,
             'filter_date' => $date,
             'staffPermissions' => $perms,
