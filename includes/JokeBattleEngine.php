@@ -42,11 +42,13 @@ final class JokeBattleEngine implements GameEngine
             ];
             $len = mb_strlen(trim($message));
             $score = min(96, max(62, 65 + ($len % 28)));
+            $feedback = 'Nice setup and punchy delivery! (Local Offline Mode)';
+            $aiJoke = $jokes[array_rand($jokes)];
             return [
                 'valid'    => true,
                 'score'    => $score,
-                'feedback' => 'Nice setup and punchy delivery! (Local Offline Mode)',
-                'ai'       => $jokes[array_rand($jokes)],
+                'feedback' => $feedback,
+                'ai'       => "⭐ Rating: {$score}/100 — {$feedback}\n\n🎭 My joke: {$aiJoke}",
             ];
         }
 
@@ -66,12 +68,15 @@ final class JokeBattleEngine implements GameEngine
             throw new \RuntimeException('Gemini returned an incomplete joke rating. Please retry.');
         }
 
-        // Normalize score to 0-100 and truncate feedback/counter-joke lengths
+        // Normalize score to 0-100 and include rating + feedback in the AI chat bubble
+        $score = max(0, min(100, (int) $r['score']));
+        $feedback = mb_substr($r['feedback'], 0, 600);
+        $aiJoke = mb_substr($r['ai_joke'], 0, 1000);
         return [
             'valid' => true,
-            'score' => max(0, min(100, (int) $r['score'])),
-            'feedback' => mb_substr($r['feedback'], 0, 600),
-            'ai' => mb_substr($r['ai_joke'], 0, 1000),
+            'score' => $score,
+            'feedback' => $feedback,
+            'ai' => "⭐ Rating: {$score}/100 — {$feedback}\n\n🎭 My joke: {$aiJoke}",
         ];
     }
 }
