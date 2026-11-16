@@ -132,6 +132,17 @@ final class WordChainEngine implements GameEngine
             ];
         }
 
+        // If the player asks a question (ends with '?'), remind them of the topic and letter without costing an attempt.
+        if (str_ends_with(trim($message), '?')) {
+            return [
+                'valid'    => false,
+                'message'  => 'Current topic is ' . $topic . '. Enter one English word starting with ' . strtoupper(substr($last, -1)) . ' (no attempt lost).',
+                'finished' => false,
+                'result'   => 'pending',
+                'state'    => $state,
+            ];
+        }
+
         // Run local structural, uniqueness, and letter-chaining checks before calling Gemini.
         if (!preg_match('/^[a-z]{2,30}$/', $word)) {
             $error = 'Enter exactly one English word (letters only).';
@@ -144,16 +155,8 @@ final class WordChainEngine implements GameEngine
         // Proceed to AI semantic validation and counter-move only if local checks passed.
         if ($error === null) {
             if (!GeminiClient::configured() && GeminiClient::isLocalFallback()) {
-                $pool = ['apple','elephant','tiger','rabbit','train','notebook','kite','eagle','earth','house','energy','yellow','whale','echo','orange','egg','grape','eagle','island','dog','garden','night','tree','river','rock','king','goat','time','moon','nest','star','road','desk','key','yarn','note','eye','ear','ring','gold','door'];
                 $need = substr($word, -1);
-                $usedAll = array_merge($used, [$word]);
-                $ai = null;
-                foreach ($pool as $cand) {
-                    if ($cand[0] === $need && !in_array($cand, $usedAll, true)) {
-                        $ai = $cand;
-                        break;
-                    }
-                }
+                $ai = $this->pickFallbackWord($topic, $need, array_merge($used, [$word]));
                 $state['used'][] = $word;
                 if ($ai !== null) {
                     $state['used'][] = $ai;
@@ -188,7 +191,7 @@ final class WordChainEngine implements GameEngine
                 // Normalize the AI's counter-word if one was provided.
                 $ai = isset($r['ai_word']) && is_string($r['ai_word']) ? $this->norm($r['ai_word']) : null;
 
-                // If Gemini returned an invalid/duplicate/mismatched word, fall back to a valid unused word starting with the required letter.
+                // If Gemini returned an invalid/duplicate/mismatched word, fall back to a topic-aware unused word.
                 $usedAll = array_merge($used, [$word]);
                 if (
                     $ai !== null
@@ -198,42 +201,7 @@ final class WordChainEngine implements GameEngine
                         || in_array($ai, $usedAll, true)
                     )
                 ) {
-                    $need = substr($word, -1);
-                    $fallback = [
-                        'a' => ['apple', 'animal', 'airport', 'ant', 'anchor'],
-                        'b' => ['book', 'bird', 'bridge', 'banana', 'boat'],
-                        'c' => ['cat', 'camera', 'cloud', 'castle', 'clock'],
-                        'd' => ['dog', 'desk', 'drum', 'dolphin', 'door'],
-                        'e' => ['eagle', 'earth', 'echo', 'engine', 'elephant'],
-                        'f' => ['forest', 'fish', 'flame', 'flower', 'flute'],
-                        'g' => ['garden', 'guitar', 'goat', 'globe', 'grape'],
-                        'h' => ['house', 'horse', 'harbor', 'hammer', 'hat'],
-                        'i' => ['island', 'iguana', 'igloo', 'ink', 'iron'],
-                        'j' => ['jacket', 'jaguar', 'jungle', 'jewel', 'jar'],
-                        'k' => ['kite', 'king', 'koala', 'kettle', 'key'],
-                        'l' => ['lion', 'lamp', 'lake', 'lemon', 'laptop'],
-                        'm' => ['moon', 'monkey', 'mountain', 'music', 'map'],
-                        'n' => ['nest', 'night', 'notebook', 'needle', 'nurse'],
-                        'o' => ['orange', 'ocean', 'owl', 'orbit', 'olive'],
-                        'p' => ['planet', 'piano', 'panda', 'pencil', 'park'],
-                        'q' => ['queen', 'quilt', 'quail', 'quartz', 'quest'],
-                        'r' => ['river', 'rabbit', 'rocket', 'rain', 'ring'],
-                        's' => ['star', 'school', 'snake', 'soccer', 'sun'],
-                        't' => ['tiger', 'train', 'tree', 'table', 'trumpet'],
-                        'u' => ['umbrella', 'unicorn', 'uniform', 'urn', 'unit'],
-                        'v' => ['violin', 'valley', 'village', 'vase', 'van'],
-                        'w' => ['whale', 'window', 'water', 'wolf', 'watch'],
-                        'x' => ['xenon', 'xylem', 'xerox'],
-                        'y' => ['yellow', 'yacht', 'yak', 'yarn', 'yard'],
-                        'z' => ['zebra', 'zero', 'zone', 'zipper', 'zoo'],
-                    ];
-                    $ai = null;
-                    foreach ($fallback[$need] ?? [] as $cand) {
-                        if (!in_array($cand, $usedAll, true)) {
-                            $ai = $cand;
-                            break;
-                        }
-                    }
+                    $ai = $this->pickFallbackWord($topic, substr($word, -1), $usedAll);
                 }
 
                 // Append the player's word and optional AI counter-word to the used list.
@@ -274,5 +242,52 @@ final class WordChainEngine implements GameEngine
             'result' => $remaining === 0 ? 'loss' : 'pending',
             'state' => $state,
         ];
+    }
+
+    /**
+     * Pick an unused fallback word matching the topic (or general a-z pool if exhausted).
+     */
+    private function pickFallbackWord(string $topic, string $need, array $usedAll): ?string
+    {
+        $byTopic = [
+            'Animals' => ['ant','alligator','alpaca','bear','bat','beaver','cat','camel','cheetah','dog','dolphin','duck','eagle','elephant','emu','fox','frog','falcon','giraffe','goat','goose','horse','hawk','hippo','iguana','ibis','jaguar','jellyfish','kangaroo','koala','kiwi','lion','leopard','llama','monkey','mouse','moose','newt','narwhal','owl','otter','ostrich','panda','penguin','parrot','quail','rabbit','raccoon','rhino','snake','shark','seal','tiger','turtle','toucan','urchin','vulture','viper','whale','wolf','walrus','xerus','yak','zebra'],
+            'Food' => ['apple','avocado','almond','banana','bread','burger','cake','cheese','carrot','donut','dumpling','egg','eggplant','fig','fish','fries','grape','garlic','honey','ham','icecream','jam','juice','kiwi','kale','lemon','lime','mango','melon','milk','noodle','nut','orange','olive','onion','pizza','pasta','pear','quinoa','rice','radish','salad','soup','steak','toast','tomato','udon','vanilla','waffle','watermelon','yam','yogurt','zucchini'],
+            'School' => ['atlas','algebra','art','book','board','backpack','chalk','class','campus','desk','diary','dictionary','exam','essay','eraser','folder','formula','globe','grade','glue','homework','history','ink','journal','keyboard','library','locker','lesson','map','math','marker','notebook','note','pen','pencil','paper','quiz','ruler','reading','science','student','teacher','test','textbook','uniform','unit','vocabulary','workbook','yearbook'],
+            'Technology' => ['app','algorithm','antenna','browser','battery','byte','cable','camera','chip','data','database','disk','email','engine','ethernet','fiber','file','firmware','gadget','gpu','hardware','host','internet','icon','java','joystick','keyboard','kernel','laptop','laser','link','memory','modem','monitor','network','node','pixel','processor','python','quantum','router','robot','ram','server','screen','software','tablet','terminal','usb','update','video','virus','wifi','webcam','xml','youtube','zip'],
+            'Sports' => ['archery','athlete','arena','boxing','baseball','badminton','cricket','cycling','coach','diving','darts','discus','equestrian','event','fencing','football','fitness','golf','gymnastics','goal','hockey','hurdles','hiking','ice','judo','javelin','jogging','karate','kayak','kick','lacrosse','lap','league','marathon','medal','match','netball','olympics','oar','paddle','polo','pitch','race','rugby','rowing','soccer','skiing','swimming','tennis','track','trophy','umpire','volleyball','vault','wrestling','weightlifting','yoga','zenith'],
+            'Nature' => ['air','aurora','ash','beach','brook','breeze','canyon','cloud','cliff','desert','dew','dune','earth','eclipse','estuary','forest','fern','flower','glacier','grove','gale','hill','horizon','hail','island','iceberg','jungle','kelp','lake','leaf','lagoon','meadow','mountain','mist','nectar','oasis','ocean','oak','plain','peak','pond','rain','river','reef','sand','sea','sky','tree','tide','thunder','valley','volcano','vine','waterfall','wind','wave','yard','zenith'],
+            'Music' => ['alto','aria','accordion','bass','banjo','beat','cello','chord','choir','drum','duet','dance','echo','encore','etude','flute','folk','fiddle','guitar','gong','groove','harp','harmony','hymn','instrument','intro','jazz','jingle','key','keyboard','lyric','lute','melody','mic','note','nocturne','opera','organ','piano','pitch','pop','quartet','rhythm','rock','sax','song','snare','tempo','tenor','tune','ukulele','violin','vocal','waltz','xylophone','yodel','zither'],
+            'Travel' => ['airport','atlas','airline','baggage','beach','boat','cabin','cruise','compass','customs','dock','drive','embassy','excursion','ferry','flight','fjord','guide','gate','harbor','hotel','highway','island','itinerary','journey','jet','kayak','luggage','lobby','map','motel','museum','ocean','orbit','passport','plane','port','rail','resort','road','ship','suitcase','station','ticket','tour','train','umbrella','vacation','visa','voyage','walk','yacht','zone'],
+            'Space' => ['asteroid','astronaut','aurora','blackhole','beacon','cosmos','comet','crater','dust','dwarf','eclipse','earth','equinox','flare','fusion','galaxy','gravity','horizon','halo','ion','jupiter','kepler','lunar','launch','mars','meteor','moon','nebula','nova','neutron','orbit','observatory','planet','pulsar','quasar','rocket','rover','ring','saturn','star','sun','telescope','transit','universe','uranus','venus','void','wormhole','xray','zenith','zodiac'],
+            'Health' => ['ankle','aspirin','apple','bandage','balance','blood','clinic','cardio','calm','diet','doctor','dose','energy','exercise','exam','fever','fitness','fiber','glucose','gym','heal','heart','herb','immune','injury','jogging','joint','kidney','knee','lung','medicine','muscle','nurse','nutrition','oxygen','organ','pulse','protein','pill','rest','recovery','sleep','spine','strength','therapy','tonic','ultrasound','vaccine','vitamin','water','wellness','xray','yoga','zinc'],
+        ];
+
+        foreach ($byTopic[$topic] ?? [] as $cand) {
+            if ($cand[0] === $need && !in_array($cand, $usedAll, true)) {
+                return $cand;
+            }
+        }
+
+        $general = [
+            'a' => ['apple', 'anchor', 'arrow'], 'b' => ['book', 'bridge', 'boat'],
+            'c' => ['camera', 'clock', 'cloud'], 'd' => ['desk', 'door', 'drum'],
+            'e' => ['eagle', 'engine', 'echo'], 'f' => ['flame', 'flute', 'forest'],
+            'g' => ['garden', 'globe', 'guitar'], 'h' => ['harbor', 'hammer', 'house'],
+            'i' => ['island', 'igloo', 'iron'], 'j' => ['jacket', 'jewel', 'jar'],
+            'k' => ['kite', 'kettle', 'key'], 'l' => ['lamp', 'lake', 'lemon'],
+            'm' => ['moon', 'mountain', 'map'], 'n' => ['nest', 'night', 'needle'],
+            'o' => ['ocean', 'olive', 'orbit'], 'p' => ['planet', 'park', 'pencil'],
+            'q' => ['queen', 'quilt', 'quest'], 'r' => ['river', 'rocket', 'ring'],
+            's' => ['star', 'school', 'sun'], 't' => ['train', 'tree', 'table'],
+            'u' => ['umbrella', 'unit', 'urn'], 'v' => ['valley', 'vase', 'van'],
+            'w' => ['water', 'window', 'watch'], 'x' => ['xenon', 'xylem', 'xerox'],
+            'y' => ['yellow', 'yacht', 'yard'], 'z' => ['zebra', 'zone', 'zero'],
+        ];
+        foreach ($general[$need] ?? [] as $cand) {
+            if (!in_array($cand, $usedAll, true)) {
+                return $cand;
+            }
+        }
+        return null;
     }
 }
