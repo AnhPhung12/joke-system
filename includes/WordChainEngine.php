@@ -188,16 +188,52 @@ final class WordChainEngine implements GameEngine
                 // Normalize the AI's counter-word if one was provided.
                 $ai = isset($r['ai_word']) && is_string($r['ai_word']) ? $this->norm($r['ai_word']) : null;
 
-                // Verify the AI's counter-word obeys length, chaining, and uniqueness rules.
+                // If Gemini returned an invalid/duplicate/mismatched word, fall back to a valid unused word starting with the required letter.
+                $usedAll = array_merge($used, [$word]);
                 if (
                     $ai !== null
                     && (
                         !preg_match('/^[a-z]{2,30}$/', $ai)
                         || $ai[0] !== substr($word, -1)
-                        || in_array($ai, array_merge($used, [$word]), true)
+                        || in_array($ai, $usedAll, true)
                     )
                 ) {
-                    throw new \RuntimeException('Baby Joke generated an invalid word. Please send your word again.');
+                    $need = substr($word, -1);
+                    $fallback = [
+                        'a' => ['apple', 'animal', 'airport', 'ant', 'anchor'],
+                        'b' => ['book', 'bird', 'bridge', 'banana', 'boat'],
+                        'c' => ['cat', 'camera', 'cloud', 'castle', 'clock'],
+                        'd' => ['dog', 'desk', 'drum', 'dolphin', 'door'],
+                        'e' => ['eagle', 'earth', 'echo', 'engine', 'elephant'],
+                        'f' => ['forest', 'fish', 'flame', 'flower', 'flute'],
+                        'g' => ['garden', 'guitar', 'goat', 'globe', 'grape'],
+                        'h' => ['house', 'horse', 'harbor', 'hammer', 'hat'],
+                        'i' => ['island', 'iguana', 'igloo', 'ink', 'iron'],
+                        'j' => ['jacket', 'jaguar', 'jungle', 'jewel', 'jar'],
+                        'k' => ['kite', 'king', 'koala', 'kettle', 'key'],
+                        'l' => ['lion', 'lamp', 'lake', 'lemon', 'laptop'],
+                        'm' => ['moon', 'monkey', 'mountain', 'music', 'map'],
+                        'n' => ['nest', 'night', 'notebook', 'needle', 'nurse'],
+                        'o' => ['orange', 'ocean', 'owl', 'orbit', 'olive'],
+                        'p' => ['planet', 'piano', 'panda', 'pencil', 'park'],
+                        'q' => ['queen', 'quilt', 'quail', 'quartz', 'quest'],
+                        'r' => ['river', 'rabbit', 'rocket', 'rain', 'ring'],
+                        's' => ['star', 'school', 'snake', 'soccer', 'sun'],
+                        't' => ['tiger', 'train', 'tree', 'table', 'trumpet'],
+                        'u' => ['umbrella', 'unicorn', 'uniform', 'urn', 'unit'],
+                        'v' => ['violin', 'valley', 'village', 'vase', 'van'],
+                        'w' => ['whale', 'window', 'water', 'wolf', 'watch'],
+                        'x' => ['xenon', 'xylem', 'xerox'],
+                        'y' => ['yellow', 'yacht', 'yak', 'yarn', 'yard'],
+                        'z' => ['zebra', 'zero', 'zone', 'zipper', 'zoo'],
+                    ];
+                    $ai = null;
+                    foreach ($fallback[$need] ?? [] as $cand) {
+                        if (!in_array($cand, $usedAll, true)) {
+                            $ai = $cand;
+                            break;
+                        }
+                    }
                 }
 
                 // Append the player's word and optional AI counter-word to the used list.
