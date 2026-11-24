@@ -29,8 +29,8 @@ use App\Core\{Csrf, Url}; // Import CSRF and URL helpers
             <div>
                 <span class="pill"><?= e($j['category_name']) ?></span>
                 <h3><?= e($j['title']) ?></h3>
-                <!-- Escape content and preserve line breaks -->
-                <p><?= nl2br(e($j['content'])) ?></p>
+                <!-- Render sanitized rich HTML content -->
+                <div class="joke-body"><?= sanitize_joke_html($j['content']) ?></div>
                 <small>by <?= e($j['username']) ?> · <?= e($j['created_at']) ?></small>
             </div>
 

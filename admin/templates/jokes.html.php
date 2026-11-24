@@ -56,7 +56,7 @@ use App\Core\{Auth, Url}; // Import authentication and URL helpers.
       <h3>
         <a href="<?= e(Url::to('/jokes/' . $joke['id'])) ?>"><?= e($joke['title']) ?></a>
       </h3>
-      <p><?= e(mb_strimwidth($joke['content'], 0, 200, '…', 'UTF-8')) ?></p>
+      <p><?= e(mb_strimwidth(joke_plain_text($joke['content']), 0, 200, '…', 'UTF-8')) ?></p>
       <div class="joke-meta">
         <span>by <?= e($joke['username']) ?></span>
         <span>♥ <?= (int) $joke['likes_count'] ?> · ◌ <?= (int) $joke['comments_count'] ?></span>

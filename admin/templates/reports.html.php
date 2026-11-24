@@ -32,7 +32,7 @@ $commentDate = $commentDate ?? (string) ($_GET['comment_date'] ?? ''); // Read o
       <div>
         <span class="pill"><?= e($j['category_name']) ?></span>
         <h3><?= e($j['title']) ?></h3>
-        <p><?= nl2br(e($j['content'])) ?></p>
+        <div class="joke-body"><?= sanitize_joke_html($j['content']) ?></div>
         <small>by <?= e($j['username']) ?> · <?= e($j['created_at']) ?></small>
       </div>
       <form method="post" action="<?= e(Url::to('/moderator/jokes/' . $j['id'])) ?>" class="stacked-form">
