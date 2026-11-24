@@ -51,7 +51,6 @@ $action = $editing ? '/jokes/' . $joke['id'] . '/edit' : '/jokes/create'; // Res
         <textarea
             id="joke-content-editor"
             name="content"
-            required
             rows="8"
             placeholder="Tell your joke..."
         ><?= e($joke['content'] ?? '') ?></textarea>
@@ -95,7 +94,10 @@ document.addEventListener('DOMContentLoaded', function () {
         toolbar: 'undo redo | blocks | bold italic underline | bullist numlist | link emoticons | removeformat',
         valid_elements: 'p,br,strong/b,em/i,u,ul,ol,li,a[href|target|rel]',
         branding: false,
-        promotion: false
+        promotion: false,
+        setup: function (editor) {
+            editor.on('change input keyup', function () { editor.save(); });
+        }
     });
 });
 </script>
