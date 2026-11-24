@@ -251,15 +251,9 @@ final class AdminController
             Url::redirect('/admin/settings');
         }
 
-        // Resolve target Gemini model and fallback list
-        $model = trim((string) (getenv('JOKE_AI_MODEL') ?: 'gemini-3-flash-lite'));
-        $model = preg_replace('~^models/~', '', $model);
-        $fallbackModels = array_values(array_unique([
-            $model,
-            'gemini-3-flash-lite',
-            'gemini-3.5-flash-lite',
-            'gemini-3.8-flash',
-        ]));
+        // Use gemini-3-flash-lite exclusively as requested
+        $model = 'gemini-3-flash-lite';
+        $fallbackModels = [$model];
 
         // Build minimal ping payload with 10-token cap
         $data = [

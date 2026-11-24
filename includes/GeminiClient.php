@@ -118,12 +118,7 @@ final class GeminiClient
 
         // Track last transient error message across retry attempts
         $last = '';
-        $fallbackModels = array_values(array_unique([
-            $model,
-            'gemini-3-flash-lite',
-            'gemini-3.5-flash-lite',
-            'gemini-3.8-flash',
-        ]));
+        $fallbackModels = ['gemini-3-flash-lite'];
 
         // Try primary model and fall back across Gemini 3 models (2 passes with short 0.5s pause)
         for ($pass = 0; $pass < 2; $pass++) {
