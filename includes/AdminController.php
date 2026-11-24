@@ -251,10 +251,15 @@ final class AdminController
             Url::redirect('/admin/settings');
         }
 
-        // Resolve target Gemini model and build generateContent URL
+        // Resolve target Gemini model and fallback list
         $model = trim((string) (getenv('JOKE_AI_MODEL') ?: 'gemini-3-flash-lite'));
         $model = preg_replace('~^models/~', '', $model);
-        $url = 'https://generativelanguage.googleapis.com/v1beta/models/' . $model . ':generateContent';
+        $fallbackModels = array_values(array_unique([
+            $model,
+            'gemini-3-flash-lite',
+            'gemini-3.5-flash-lite',
+            'gemini-3.8-flash',
+        ]));
 
         // Build minimal ping payload with 10-token cap
         $data = [
@@ -267,29 +272,42 @@ final class AdminController
             'generationConfig' => ['maxOutputTokens' => 10],
         ];
 
-        // Execute cURL POST request with header-based API key (force IPv4 to avoid IPv6 hang)
-        $ch = curl_init($url);
-        curl_setopt_array($ch, [
-            CURLOPT_POST => true,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'x-goog-api-key: ' . $key],
-            CURLOPT_POSTFIELDS => json_encode($data),
-            CURLOPT_IPRESOLVE => CURL_IPRESOLVE_V4,
-            CURLOPT_CONNECTTIMEOUT => 8,
-            CURLOPT_TIMEOUT => 20,
-        ]);
+        $status = 0;
+        $err = '';
+        $usedModel = $model;
 
-        // Capture response body, HTTP status code, and any cURL error
-        $body = curl_exec($ch);
-        $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $err = curl_error($ch);
-        curl_close($ch);
+        foreach ($fallbackModels as $candidateModel) {
+            $usedModel = $candidateModel;
+            $url = 'https://generativelanguage.googleapis.com/v1beta/models/' . $candidateModel . ':generateContent';
+            $ch = curl_init($url);
+            curl_setopt_array($ch, [
+                CURLOPT_POST => true,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'x-goog-api-key: ' . $key],
+                CURLOPT_POSTFIELDS => json_encode($data),
+                CURLOPT_IPRESOLVE => CURL_IPRESOLVE_V4,
+                CURLOPT_CONNECTTIMEOUT => 6,
+                CURLOPT_TIMEOUT => 15,
+            ]);
+
+            $body = curl_exec($ch);
+            $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $err = curl_error($ch);
+            curl_close($ch);
+
+            if ($status >= 200 && $status < 300) {
+                break;
+            }
+            if (!in_array($status, [0, 404, 429, 502, 503, 504], true)) {
+                break;
+            }
+        }
 
         // Flash connectivity test result to the admin settings page
         if ($status >= 200 && $status < 300) {
-            Session::flash('✓ AI API Connected! Google Gemini responded with HTTP ' . $status . ' OK (Model: ' . $model . ').');
+            Session::flash('✓ AI API Connected! Google Gemini responded with HTTP ' . $status . ' OK (Model: ' . $usedModel . ').');
         } else {
-            Session::flash('AI API test failed with HTTP ' . $status . ($err ? ': ' . $err : ''));
+            Session::flash('AI API test failed with HTTP ' . $status . ' (Model: ' . $usedModel . ')' . ($err ? ': ' . $err : ''));
         }
 
         Url::redirect('/admin/settings');

@@ -76,9 +76,6 @@ final class GeminiClient
             throw new \RuntimeException('Invalid Gemini model name.');
         }
 
-        // Build Gemini REST API generateContent endpoint URL
-        $url = 'https://generativelanguage.googleapis.com/v1beta/models/' . $model . ':generateContent';
-
         // Build bounded conversation history (last 16 turns, max 1,200 chars each)
         $recent = array_slice($history, -16);
         $conversation = [];
@@ -121,9 +118,17 @@ final class GeminiClient
 
         // Track last transient error message across retry attempts
         $last = '';
+        $fallbackModels = array_values(array_unique([
+            $model,
+            'gemini-3-flash-lite',
+            'gemini-3.5-flash-lite',
+            'gemini-3.8-flash',
+        ]));
 
-        // Retry loop with exponential backoff and jitter for transient failures
-        for ($attempt = 0; $attempt < 3; $attempt++) {
+        // Try primary model and fall back across Gemini 3 models on transient errors
+        foreach ($fallbackModels as $candidateModel) {
+            $url = 'https://generativelanguage.googleapis.com/v1beta/models/' . $candidateModel . ':generateContent';
+
             // Initialize cURL handle and configure POST headers, JSON body, and timeouts (force IPv4)
             $ch = curl_init($url);
             curl_setopt_array($ch, [
@@ -135,67 +140,50 @@ final class GeminiClient
                 ],
                 CURLOPT_POSTFIELDS => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE),
                 CURLOPT_IPRESOLVE => CURL_IPRESOLVE_V4,
-                CURLOPT_CONNECTTIMEOUT => 8,
-                CURLOPT_TIMEOUT => 20,
+                CURLOPT_CONNECTTIMEOUT => 6,
+                CURLOPT_TIMEOUT => 15,
                 CURLOPT_FOLLOWLOCATION => false,
             ]);
 
-            // Execute HTTP request and capture status code and transport error
             $body = curl_exec($ch);
             $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
             $err = curl_error($ch);
             curl_close($ch);
 
-            // Retry on network/transport failure with exponential backoff + jitter
             if ($body === false) {
                 $last = $err ?: 'Connection failed.';
-                if ($attempt < 2) {
-                    usleep((int) ((1 << $attempt) * 600000 + random_int(0, 200000)));
-                    continue;
-                }
-                break;
+                continue;
             }
 
-            // Decode JSON response envelope
             $decoded = json_decode($body, true);
 
-            // Retry on rate-limit (429) or transient upstream gateway errors (502/503/504)
-            if ($status === 429 || $status === 503 || $status === 502 || $status === 504) {
+            if ($status === 429 || $status === 503 || $status === 502 || $status === 504 || $status === 404) {
                 $last = 'Gemini is busy or rate-limited (HTTP ' . $status . ').';
-                if ($attempt < 2) {
-                    usleep((int) ((1 << $attempt) * 700000 + random_int(0, 250000)));
-                    continue;
-                }
-                break;
+                continue;
             }
 
-            // Log and throw on non-retryable HTTP client/server errors
             if ($status < 200 || $status >= 300) {
                 error_log('JOKE Gemini HTTP ' . $status . ': ' . mb_substr((string) ($decoded['error']['message'] ?? 'API error'), 0, 300));
                 throw new \RuntimeException('Gemini request failed (HTTP ' . $status . '). Check model access and API quota.');
             }
 
-            // Concatenate candidate text parts and strip any accidental markdown fences
             $parts = $decoded['candidates'][0]['content']['parts'] ?? [];
             $content = '';
             foreach ($parts as $part) {
                 $content .= (string) ($part['text'] ?? '');
             }
 
-            // Remove optional ```json ... ``` wrapper and parse associative JSON object
             $content = trim(preg_replace('/^```(?:json)?\s*|\s*```$/u', '', trim($content)));
             $result = json_decode($content, true);
 
-            // Ensure the parsed payload is a non-list associative JSON object
             if (!is_array($result) || array_is_list($result)) {
                 throw new \RuntimeException('Gemini returned an invalid game response. Please retry.');
             }
 
-            // Return decoded associative array to the calling game engine
             return $result;
         }
 
-        // Exhausted all retry attempts; surface the last transient error
+        // Exhausted all fallback models; surface the last transient error
         throw new \RuntimeException($last . ' Please try again shortly.');
     }
 }
