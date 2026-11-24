@@ -35,6 +35,7 @@ spl_autoload_register(static function (string $class): void {
         'App\\Models\\Moderation' => 'Moderation.php',
         'App\\Models\\PasswordReset' => 'PasswordReset.php',
         'App\\Controllers\\AdminController' => 'AdminController.php',
+        'App\\Controllers\\AuthorController' => 'AuthorController.php',
         'App\\Controllers\\GameController' => 'GameController.php',
         'App\\Controllers\\CommunityController' => 'CommunityController.php',
         'App\\Controllers\\JokeController' => 'JokeController.php',

@@ -75,6 +75,26 @@ final class User
     }
 
     /**
+     * List active joke authors with their published-joke totals.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function authors(): array
+    {
+        $s = $this->db->query(
+            "SELECT u.id, u.username, u.location, u.created_at, COUNT(j.id) AS published_jokes
+             FROM users u
+             LEFT JOIN jokes j ON j.user_id = u.id AND j.status = 'published'
+             WHERE u.status = 'active'
+             GROUP BY u.id, u.username, u.location, u.created_at
+             HAVING COUNT(j.id) > 0
+             ORDER BY published_jokes DESC, u.username ASC"
+        );
+
+        return $s->fetchAll();
+    }
+
+    /**
      * Check whether a username or email is already registered.
      */
     public function exists(string $username, string $email): bool

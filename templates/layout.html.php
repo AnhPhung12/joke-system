@@ -95,6 +95,7 @@ $bellUnread = count(array_filter($bellItems, static fn($n) => !(bool)$n["is_read
                 <?php else: // Render standard user/guest navigation links ?>
                     <a href="<?= e(Url::to('/')) ?>">⌂ &nbsp; Home</a>
                     <a href="<?= e(Url::to('/jokes')) ?>">☁ &nbsp; Joke Library</a>
+                    <a href="<?= e(Url::to('/authors')) ?>">Authors</a>
                     <?php if ($currentUser): // Show authenticated user routes ?>
                         <a href="<?= e(Url::to('/my-jokes')) ?>">✎ &nbsp; My Jokes</a>
                         <a href="<?= e(Url::to('/jokes/create')) ?>">＋ &nbsp; Create Joke</a>

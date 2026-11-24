@@ -24,6 +24,7 @@ $router = new Router();
 $auth = new App\Controllers\AuthController();
 $dash = new App\Controllers\DashboardController();
 $jokes = new App\Controllers\JokeController();
+$authors = new App\Controllers\AuthorController();
 $community = new App\Controllers\CommunityController();
 $moderation = new App\Controllers\ModerationController();
 
@@ -50,6 +51,7 @@ $router->post('/reset-password', [$reset, 'resetPassword']);
 
 // Joke feed, CRUD, likes, and favorites
 $router->get('/jokes', [$jokes, 'index']);
+$router->get('/authors', [$authors, 'index']);
 $router->get('/jokes/surprise', [$jokes, 'surprise']);
 $router->get('/jokes/create', [$jokes, 'create']);
 $router->post('/jokes/create', [$jokes, 'store']);

@@ -40,6 +40,7 @@ final class View
             'auth/forgot-password' => 'templates/forgot-password.html.php',
             'auth/reset-password' => 'templates/reset-password.html.php',
             'jokes/index' => 'templates/jokes.html.php',
+            'authors/index' => 'templates/authors.html.php',
             'jokes/show' => 'templates/joke-detail.html.php',
             'jokes/form' => 'templates/joke-form.html.php',
             'jokes/mine' => 'templates/my-jokes.html.php',
