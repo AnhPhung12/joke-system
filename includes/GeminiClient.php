@@ -125,62 +125,67 @@ final class GeminiClient
             'gemini-3.8-flash',
         ]));
 
-        // Try primary model and fall back across Gemini 3 models on transient errors
-        foreach ($fallbackModels as $candidateModel) {
-            $url = 'https://generativelanguage.googleapis.com/v1beta/models/' . $candidateModel . ':generateContent';
-
-            // Initialize cURL handle and configure POST headers, JSON body, and timeouts (force IPv4)
-            $ch = curl_init($url);
-            curl_setopt_array($ch, [
-                CURLOPT_POST => true,
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_HTTPHEADER => [
-                    'Content-Type: application/json',
-                    'x-goog-api-key: ' . getenv('JOKE_AI_API_KEY'),
-                ],
-                CURLOPT_POSTFIELDS => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE),
-                CURLOPT_IPRESOLVE => CURL_IPRESOLVE_V4,
-                CURLOPT_CONNECTTIMEOUT => 6,
-                CURLOPT_TIMEOUT => 15,
-                CURLOPT_FOLLOWLOCATION => false,
-            ]);
-
-            $body = curl_exec($ch);
-            $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            $err = curl_error($ch);
-            curl_close($ch);
-
-            if ($body === false) {
-                $last = $err ?: 'Connection failed.';
-                continue;
+        // Try primary model and fall back across Gemini 3 models (2 passes with short 0.5s pause)
+        for ($pass = 0; $pass < 2; $pass++) {
+            if ($pass > 0) {
+                usleep(500000);
             }
+            foreach ($fallbackModels as $candidateModel) {
+                $url = 'https://generativelanguage.googleapis.com/v1beta/models/' . $candidateModel . ':generateContent';
 
-            $decoded = json_decode($body, true);
+                // Initialize cURL handle and configure POST headers, JSON body, and timeouts (force IPv4)
+                $ch = curl_init($url);
+                curl_setopt_array($ch, [
+                    CURLOPT_POST => true,
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_HTTPHEADER => [
+                        'Content-Type: application/json',
+                        'x-goog-api-key: ' . getenv('JOKE_AI_API_KEY'),
+                    ],
+                    CURLOPT_POSTFIELDS => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE),
+                    CURLOPT_IPRESOLVE => CURL_IPRESOLVE_V4,
+                    CURLOPT_CONNECTTIMEOUT => 6,
+                    CURLOPT_TIMEOUT => 15,
+                    CURLOPT_FOLLOWLOCATION => false,
+                ]);
 
-            if ($status === 429 || $status === 503 || $status === 502 || $status === 504 || $status === 404) {
-                $last = 'Gemini is busy or rate-limited (HTTP ' . $status . ').';
-                continue;
+                $body = curl_exec($ch);
+                $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                $err = curl_error($ch);
+                curl_close($ch);
+
+                if ($body === false) {
+                    $last = $err ?: 'Connection failed.';
+                    continue;
+                }
+
+                $decoded = json_decode($body, true);
+
+                if ($status === 429 || $status === 503 || $status === 502 || $status === 504 || $status === 404) {
+                    $last = 'Gemini is busy or rate-limited (HTTP ' . $status . ').';
+                    continue;
+                }
+
+                if ($status < 200 || $status >= 300) {
+                    error_log('JOKE Gemini HTTP ' . $status . ': ' . mb_substr((string) ($decoded['error']['message'] ?? 'API error'), 0, 300));
+                    throw new \RuntimeException('Gemini request failed (HTTP ' . $status . '). Check model access and API quota.');
+                }
+
+                $parts = $decoded['candidates'][0]['content']['parts'] ?? [];
+                $content = '';
+                foreach ($parts as $part) {
+                    $content .= (string) ($part['text'] ?? '');
+                }
+
+                $content = trim(preg_replace('/^```(?:json)?\s*|\s*```$/u', '', trim($content)));
+                $result = json_decode($content, true);
+
+                if (!is_array($result) || array_is_list($result)) {
+                    throw new \RuntimeException('Gemini returned an invalid game response. Please retry.');
+                }
+
+                return $result;
             }
-
-            if ($status < 200 || $status >= 300) {
-                error_log('JOKE Gemini HTTP ' . $status . ': ' . mb_substr((string) ($decoded['error']['message'] ?? 'API error'), 0, 300));
-                throw new \RuntimeException('Gemini request failed (HTTP ' . $status . '). Check model access and API quota.');
-            }
-
-            $parts = $decoded['candidates'][0]['content']['parts'] ?? [];
-            $content = '';
-            foreach ($parts as $part) {
-                $content .= (string) ($part['text'] ?? '');
-            }
-
-            $content = trim(preg_replace('/^```(?:json)?\s*|\s*```$/u', '', trim($content)));
-            $result = json_decode($content, true);
-
-            if (!is_array($result) || array_is_list($result)) {
-                throw new \RuntimeException('Gemini returned an invalid game response. Please retry.');
-            }
-
-            return $result;
         }
 
         // Exhausted all fallback models; surface the last transient error
