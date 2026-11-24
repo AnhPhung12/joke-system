@@ -28,7 +28,7 @@ $me = Auth::user(); // Fetch currently signed-in user or null for guests
     <!-- Render sanitized rich-text HTML body -->
     <div class="joke-body"><?= sanitize_joke_html($joke['content']) ?></div>
     <div class="joke-meta">
-        <span>✦ <?= e($joke['username']) ?> · <?= e($joke['country_code'] ?? '') ?></span>
+        <span>✦ <?= e($joke['username']) ?> · <?= e($joke['country_code'] ?? '') ?><?php if (!empty($joke['created_at'])): ?> · 🕒 <?= e(date('Y-m-d H:i', strtotime((string)$joke['created_at']))) ?><?php endif; ?></span>
         <span>♥ <?= (int)$joke['likes_count'] ?></span>
     </div>
 

@@ -70,7 +70,7 @@ use App\Core\{Auth, Url}; // Import auth and URL helpers
             <!-- Strip HTML tags and truncate joke preview to 200 characters -->
             <p><?= e(mb_strimwidth(joke_plain_text($joke['content']), 0, 200, '…', 'UTF-8')) ?></p>
             <div class="joke-meta">
-                <span>by <?= e($joke['username']) ?></span>
+                <span>by <?= e($joke['username']) ?><?php if (!empty($joke['created_at'])): ?> · <?= e(date('M j, Y', strtotime((string)$joke['created_at']))) ?><?php endif; ?></span>
                 <span>♥ <?= (int)$joke['likes_count'] ?> · ◌ <?= (int)$joke['comments_count'] ?></span>
             </div>
             <a class="text-link" href="<?= e(Url::to('/jokes/' . $joke['id'])) ?>"><?= e(tr('Read joke')) ?> →</a>
