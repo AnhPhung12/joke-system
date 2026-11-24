@@ -76,6 +76,7 @@ final class Url
             '/reset-password/verify' => '/verify-reset-otp.php',
             '/dashboard' => '/dashboard.php',
             '/jokes' => '/jokes.php',
+            '/authors' => '/authors.php',
             '/jokes/create' => '/create-joke.php',
             '/jokes/surprise' => '/surprise-joke.php',
             '/my-jokes' => '/my-jokes.php',
