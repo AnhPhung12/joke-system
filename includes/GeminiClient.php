@@ -124,7 +124,7 @@ final class GeminiClient
 
         // Retry loop with exponential backoff and jitter for transient failures
         for ($attempt = 0; $attempt < 3; $attempt++) {
-            // Initialize cURL handle and configure POST headers, JSON body, and timeouts
+            // Initialize cURL handle and configure POST headers, JSON body, and timeouts (force IPv4)
             $ch = curl_init($url);
             curl_setopt_array($ch, [
                 CURLOPT_POST => true,
@@ -134,8 +134,9 @@ final class GeminiClient
                     'x-goog-api-key: ' . getenv('JOKE_AI_API_KEY'),
                 ],
                 CURLOPT_POSTFIELDS => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE),
+                CURLOPT_IPRESOLVE => CURL_IPRESOLVE_V4,
                 CURLOPT_CONNECTTIMEOUT => 8,
-                CURLOPT_TIMEOUT => 35,
+                CURLOPT_TIMEOUT => 20,
                 CURLOPT_FOLLOWLOCATION => false,
             ]);
 

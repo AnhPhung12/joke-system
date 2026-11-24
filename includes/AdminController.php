@@ -267,14 +267,16 @@ final class AdminController
             'generationConfig' => ['maxOutputTokens' => 10],
         ];
 
-        // Execute cURL POST request with header-based API key
+        // Execute cURL POST request with header-based API key (force IPv4 to avoid IPv6 hang)
         $ch = curl_init($url);
         curl_setopt_array($ch, [
             CURLOPT_POST => true,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'x-goog-api-key: ' . $key],
             CURLOPT_POSTFIELDS => json_encode($data),
-            CURLOPT_TIMEOUT => 12,
+            CURLOPT_IPRESOLVE => CURL_IPRESOLVE_V4,
+            CURLOPT_CONNECTTIMEOUT => 8,
+            CURLOPT_TIMEOUT => 20,
         ]);
 
         // Capture response body, HTTP status code, and any cURL error
