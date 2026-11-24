@@ -28,7 +28,7 @@ $action = $editing ? '/jokes/' . $joke['id'] . '/edit' : '/jokes/create'; // Res
 
 <!-- Joke submission form with CSRF protection -->
 <section class="panel form-panel">
-    <form class="stacked-form" method="post" action="<?= e(Url::to($action)) ?>">
+    <form class="stacked-form" method="post" action="<?= e(Url::to($action)) ?>" id="jokeSubmissionForm">
         <!-- Hidden CSRF token field -->
         <input type="hidden" name="_csrf" value="<?= e(Csrf::token()) ?>">
 
@@ -71,7 +71,7 @@ $action = $editing ? '/jokes/' . $joke['id'] . '/edit' : '/jokes/create'; // Res
         </label>
 
         <div class="inline-actions">
-            <button class="btn primary"><?= $editing ? 'Save & resubmit' : 'Submit for review' ?></button>
+            <button type="submit" class="btn primary"><?= $editing ? 'Save & resubmit' : 'Submit for review' ?></button>
             <a class="btn ghost" href="<?= e(Url::to('/my-jokes')) ?>">Cancel</a>
         </div>
     </form>
@@ -99,5 +99,11 @@ document.addEventListener('DOMContentLoaded', function () {
             editor.on('change input keyup', function () { editor.save(); });
         }
     });
+    var form = document.getElementById('jokeSubmissionForm');
+    if (form) {
+        form.addEventListener('submit', function () {
+            if (window.tinymce) tinymce.triggerSave();
+        });
+    }
 });
 </script>
