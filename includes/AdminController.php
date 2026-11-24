@@ -252,7 +252,7 @@ final class AdminController
         }
 
         // Resolve target Gemini model and build generateContent URL
-        $model = trim((string) (getenv('JOKE_AI_MODEL') ?: 'gemini-3.1-flash-lite'));
+        $model = trim((string) (getenv('JOKE_AI_MODEL') ?: 'gemini-3-flash-lite'));
         $model = preg_replace('~^models/~', '', $model);
         $url = 'https://generativelanguage.googleapis.com/v1beta/models/' . $model . ':generateContent';
 

@@ -68,7 +68,7 @@ final class GeminiClient
         }
 
         // Resolve and validate model name from environment
-        $model = trim((string) (getenv('JOKE_AI_MODEL') ?: 'gemini-3.1-flash-lite'));
+        $model = trim((string) (getenv('JOKE_AI_MODEL') ?: 'gemini-3-flash-lite'));
         $model = preg_replace('~^models/~', '', $model);
 
         // Guard against invalid characters in model identifier before URL interpolation
