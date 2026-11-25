@@ -71,7 +71,13 @@ final class ModerationController
         // Apply the joke moderation action and flash feedback before redirecting.
         $ok = (new Moderation())->reviewJoke($id, (int) Auth::user()['id'], $action, $reason);
         Session::flash($ok ? 'Joke moderation status updated.' : 'You cannot moderate your own joke or the joke is invalid.');
-        Url::redirect('/moderator/queue');
+        $targetTab = 'pending';
+        if ($ok && $action === 'approve') {
+            $targetTab = 'approved';
+        } elseif ($ok && $action === 'reject') {
+            $targetTab = 'rejected';
+        }
+        Url::redirect('/admin/reports?tab=' . $targetTab);
     }
 
     /**
@@ -90,10 +96,10 @@ final class ModerationController
             exit('A reason is required.');
         }
 
-        // Hide the comment, flash the outcome, and redirect to the moderation queue.
+        // Hide the comment, flash the outcome, and redirect to the hidden comments tab.
         $ok = (new Moderation())->reviewComment($id, (int) Auth::user()['id'], $reason);
         Session::flash($ok ? 'Comment hidden.' : 'Unable to moderate this comment.');
-        Url::redirect('/moderator/queue');
+        Url::redirect('/admin/reports?tab=' . ($ok ? 'hidden-comments' : 'comments'));
     }
 
     /**
@@ -115,9 +121,9 @@ final class ModerationController
             exit('Invalid report action');
         }
 
-        // Resolve or dismiss the report, flash feedback, and redirect back to the queue.
+        // Resolve or dismiss the report, flash feedback, and redirect back to the reports tab.
         $ok = (new Moderation())->resolveReport($id, (int) Auth::user()['id'], $action, $reason);
         Session::flash($ok ? 'Report resolved.' : 'Unable to resolve this report.');
-        Url::redirect('/moderator/queue');
+        Url::redirect('/admin/reports?tab=reports');
     }
 }
