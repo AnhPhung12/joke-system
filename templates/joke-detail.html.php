@@ -16,9 +16,19 @@
 use App\Core\{Auth, Csrf, Url}; // Import auth, CSRF, and URL helpers
 
 $me = Auth::user(); // Fetch currently signed-in user or null for guests
+$isStaff = $me && (Auth::hasRole('admin') || Auth::hasRole('moderator'));
+$fromModeration = $isStaff && (($_GET['from'] ?? '') === 'moderation');
+$backTab = (string) ($_GET['tab'] ?? 'approved');
+if (!in_array($backTab, ['pending', 'approved', 'rejected', 'comments', 'hidden-comments', 'reports'], true)) {
+    $backTab = 'approved';
+}
 ?>
-<!-- Back link to joke catalog -->
-<a class="text-link" href="<?= e(Url::to('/jokes')) ?>">← Back to Library</a>
+<!-- Back link -->
+<?php if ($fromModeration): ?>
+  <a class="text-link" href="<?= e(Url::to('/admin/reports.php?tab=' . urlencode($backTab))) ?>">← Back to Moderation Center</a>
+<?php else: ?>
+  <a class="text-link" href="<?= e(Url::to('/jokes')) ?>">← Back to Library</a>
+<?php endif; ?>
 
 <!-- Joke content card -->
 <article class="detail-card">
@@ -32,7 +42,7 @@ $me = Auth::user(); // Fetch currently signed-in user or null for guests
         <span>♥ <?= (int)$joke['likes_count'] ?></span>
     </div>
 
-    <?php if ($me && $joke['status'] === 'published'): // Allow like/favorite actions for signed-in users on published jokes ?>
+    <?php if ($me && !$isStaff && $joke['status'] === 'published'): // Allow like/favorite actions for signed-in clients on published jokes ?>
         <div class="inline-actions">
             <!-- Like toggle form with CSRF protection -->
             <form method="post" action="<?= e(Url::to('/jokes/' . $joke['id'] . '/like')) ?>">
@@ -57,7 +67,7 @@ $me = Auth::user(); // Fetch currently signed-in user or null for guests
 <section class="panel">
     <h2>Comments (<?= count($comments) ?>)</h2>
 
-    <?php if ($me && $joke['status'] === 'published'): // Show top-level comment form for signed-in users ?>
+    <?php if ($me && !$isStaff && $joke['status'] === 'published'): // Show top-level comment form for signed-in clients ?>
         <form class="stacked-form" method="post" action="<?= e(Url::to('/jokes/' . $joke['id'] . '/comments')) ?>">
             <input type="hidden" name="_csrf" value="<?= e(Csrf::token()) ?>">
             <textarea name="content" maxlength="2000" required placeholder="Write a friendly comment..."></textarea>
@@ -76,7 +86,7 @@ $me = Auth::user(); // Fetch currently signed-in user or null for guests
             <!-- Escape comment text and preserve line breaks -->
             <p><?= nl2br(e($comment['content'])) ?></p>
 
-            <?php if ($me): // Show reply, delete, or report actions for signed-in users ?>
+            <?php if ($me && !$isStaff): // Show reply, delete, or report actions for signed-in clients ?>
                 <div class="inline-actions">
                     <?php if ($joke['status'] === 'published' && !$comment['parent_id']): // Allow replies only on top-level comments ?>
                         <details>
@@ -121,7 +131,7 @@ $me = Auth::user(); // Fetch currently signed-in user or null for guests
 </section>
 
 <!-- Joke reporting panel (shown to signed-in non-authors on published jokes) -->
-<?php if ($me && (int)$me['id'] !== (int)$joke['user_id'] && $joke['status'] === 'published'): // Restrict joke reporting to non-author signed-in users ?>
+<?php if ($me && !$isStaff && (int)$me['id'] !== (int)$joke['user_id'] && $joke['status'] === 'published'): // Restrict joke reporting to non-author signed-in clients ?>
     <section class="panel">
         <h3>Report this joke</h3>
         <!-- Joke report form with CSRF protection -->

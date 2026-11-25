@@ -82,28 +82,28 @@ if (!in_array($activeTab, ['pending', 'approved', 'rejected', 'comments', 'hidde
 <!-- Approved (published) jokes history -->
 <section class="panel" data-mod-panel="approved" <?= $activeTab !== 'approved' ? 'hidden' : '' ?>>
   <h2>Approved jokes (<?= count($approvedJokes) ?>)</h2>
-  <?php foreach ($approvedJokes as $aj): ?>
-    <div class="moderation-item">
-      <div>
-        <span class="pill"><?= e($aj['category_name']) ?></span>
-        <span class="pill subtle">Approved</span>
-        <h3><?= e($aj['title']) ?></h3>
-        <div class="joke-body"><?= sanitize_joke_html($aj['content']) ?></div>
-        <small>
-          by <?= e($aj['username']) ?> · <?= e($aj['created_at']) ?>
-          <?php if (!empty($aj['moderator_name'])): ?>
-            · Approved by <strong><?= e($aj['moderator_name']) ?></strong><?= !empty($aj['moderated_at']) ? ' (' . e($aj['moderated_at']) . ')' : '' ?>
-          <?php endif; ?>
-        </small>
+  <div class="recent-comments-scroll">
+    <?php foreach ($approvedJokes as $aj): ?>
+      <div class="moderation-scroll-item">
+        <div class="comment-main-content">
+          <span class="pill"><?= e($aj['category_name']) ?></span>
+          <span class="pill subtle">Approved</span>
+          <h3><?= e($aj['title']) ?></h3>
+          <div class="joke-body"><?= sanitize_joke_html($aj['content']) ?></div>
+          <small>
+            by <?= e($aj['username']) ?> · <?= e($aj['created_at']) ?>
+            <?php if (!empty($aj['moderator_name'])): ?>
+              · Approved by <strong><?= e($aj['moderator_name']) ?></strong><?= !empty($aj['moderated_at']) ? ' (' . e($aj['moderated_at']) . ')' : '' ?>
+            <?php endif; ?>
+          </small>
+        </div>
+        <a class="btn ghost" style="flex-shrink:0;" href="<?= e(Url::to('/jokes/' . (int) $aj['id'] . '?from=moderation&tab=approved')) ?>">View</a>
       </div>
-      <div class="inline-actions">
-        <a class="btn ghost" href="<?= e(Url::to('/jokes/' . (int) $aj['id'])) ?>">View</a>
-      </div>
-    </div>
-  <?php endforeach; ?>
-  <?php if (!$approvedJokes): ?>
-    <p>No approved jokes yet.</p>
-  <?php endif; ?>
+    <?php endforeach; ?>
+    <?php if (!$approvedJokes): ?>
+      <p class="empty-notice">No approved jokes yet.</p>
+    <?php endif; ?>
+  </div>
 </section>
 
 <!-- Rejected jokes history with rejection reasons -->
