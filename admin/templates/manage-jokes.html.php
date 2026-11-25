@@ -139,14 +139,25 @@ $pagedJokes = array_slice($jokes, ($page - 1) * $perPage, $perPage);
     </table>
   </div>
 
-  <?php if ($pageCount > 1): ?>
-    <nav class="pagination" aria-label="Manage jokes pages" style="margin-top:16px;">
+  <?php if ($pageCount > 1):
+    $first = max(1, $page - 2);
+    $last  = min($pageCount, $page + 2);
+  ?>
+    <nav class="pagination" aria-label="Manage jokes pages" style="margin-top:18px;justify-content:center;">
       <?php if ($page > 1): ?>
         <a class="btn ghost" href="<?= e(Url::to('/admin/jokes')) ?>?page=<?= $page - 1 ?>">← Previous</a>
       <?php endif; ?>
-      <?php for ($p = 1; $p <= $pageCount; $p++): ?>
+      <?php if ($first > 1): ?>
+        <a class="btn ghost" href="<?= e(Url::to('/admin/jokes')) ?>?page=1">1</a>
+        <?php if ($first > 2): ?><span aria-hidden="true">…</span><?php endif; ?>
+      <?php endif; ?>
+      <?php for ($p = $first; $p <= $last; $p++): ?>
         <a class="btn <?= $p === $page ? 'primary' : 'ghost' ?>" <?= $p === $page ? 'aria-current="page"' : '' ?> href="<?= e(Url::to('/admin/jokes')) ?>?page=<?= $p ?>"><?= $p ?></a>
       <?php endfor; ?>
+      <?php if ($last < $pageCount): ?>
+        <?php if ($last < $pageCount - 1): ?><span aria-hidden="true">…</span><?php endif; ?>
+        <a class="btn ghost" href="<?= e(Url::to('/admin/jokes')) ?>?page=<?= $pageCount ?>"><?= $pageCount ?></a>
+      <?php endif; ?>
       <?php if ($page < $pageCount): ?>
         <a class="btn ghost" href="<?= e(Url::to('/admin/jokes')) ?>?page=<?= $page + 1 ?>">Next →</a>
       <?php endif; ?>
