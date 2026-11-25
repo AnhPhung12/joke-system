@@ -465,12 +465,15 @@ final class AdminController
         $date = (string) ($_GET['comment_date'] ?? '');
         $m = new \App\Models\Moderation();
 
-        // Render moderation queue, reports, and comments view
+        // Render moderation queue, approved/rejected jokes, reports, and visible/hidden comments view
         View::render('admin/reports', [
             'title' => 'Reports',
             'jokes' => $m->queue(),
+            'approvedJokes' => $m->jokesByStatus('published'),
+            'rejectedJokes' => $m->jokesByStatus('rejected'),
             'reports' => $m->reports(),
             'comments' => $m->comments($sort, $date),
+            'hiddenComments' => $m->hiddenComments(),
             'commentSort' => $sort,
             'commentDate' => $date,
         ]);

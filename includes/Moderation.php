@@ -44,6 +44,50 @@ final class Moderation
     }
 
     /**
+     * Fetch up to 100 jokes matching a moderation status (`published` or `rejected`) with reviewer info.
+     */
+    public function jokesByStatus(string $status): array
+    {
+        if (!in_array($status, ['published', 'rejected'], true)) {
+            return [];
+        }
+        $s = Database::connect()->prepare(
+            'SELECT j.id, j.title, j.content, j.created_at, j.moderation_note, j.moderated_at, j.published_at, '
+            . 'u.username, c.name category_name, m.username moderator_name '
+            . 'FROM jokes j '
+            . 'JOIN users u ON u.id = j.user_id '
+            . 'JOIN categories c ON c.id = j.category_id '
+            . 'LEFT JOIN users m ON m.id = j.moderated_by '
+            . 'WHERE j.status = ? '
+            . 'ORDER BY COALESCE(j.moderated_at, j.created_at) DESC, j.id DESC '
+            . 'LIMIT 100'
+        );
+        $s->execute([$status]);
+        return $s->fetchAll();
+    }
+
+    /**
+     * Fetch up to 100 hidden comments along with the latest moderation hide reason and actor.
+     */
+    public function hiddenComments(): array
+    {
+        return Database::connect()
+            ->query(
+                'SELECT co.id, co.content, co.created_at, co.joke_id, u.username, j.title joke_title, '
+                . '(SELECT ml.reason FROM moderation_logs ml WHERE ml.target_type="comment" AND ml.target_id=co.id ORDER BY ml.id DESC LIMIT 1) AS hide_reason, '
+                . '(SELECT mu.username FROM moderation_logs ml JOIN users mu ON mu.id=ml.actor_id WHERE ml.target_type="comment" AND ml.target_id=co.id ORDER BY ml.id DESC LIMIT 1) AS moderator_name, '
+                . '(SELECT ml.created_at FROM moderation_logs ml WHERE ml.target_type="comment" AND ml.target_id=co.id ORDER BY ml.id DESC LIMIT 1) AS hidden_at '
+                . 'FROM comments co '
+                . 'JOIN users u ON u.id = co.user_id '
+                . 'JOIN jokes j ON j.id = co.joke_id '
+                . 'WHERE co.status = "hidden" '
+                . 'ORDER BY co.id DESC '
+                . 'LIMIT 100'
+            )
+            ->fetchAll();
+    }
+
+    /**
      * Fetch up to 100 user reports prioritized by workflow status (pending -> reviewing -> resolved -> dismissed).
      */
     public function reports(): array

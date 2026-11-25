@@ -16,8 +16,11 @@ use App\Core\{Csrf, Url}; // Import CSRF token and URL helpers.
 // Resolve active comment filter/sort values from controller variables or query string.
 $commentSort = $commentSort ?? (string) ($_GET['comment_sort'] ?? 'date_desc'); // Default comment sort to newest first.
 $commentDate = $commentDate ?? (string) ($_GET['comment_date'] ?? ''); // Read optional comment date filter.
+$approvedJokes  = $approvedJokes ?? [];
+$rejectedJokes  = $rejectedJokes ?? [];
+$hiddenComments = $hiddenComments ?? [];
 $activeTab = (string) ($_GET['tab'] ?? (!empty($_GET['comment_sort']) || !empty($_GET['comment_date']) ? 'comments' : 'pending'));
-if (!in_array($activeTab, ['pending', 'reports', 'comments'], true)) {
+if (!in_array($activeTab, ['pending', 'approved', 'rejected', 'comments', 'hidden-comments', 'reports'], true)) {
   $activeTab = 'pending';
 }
 ?>
@@ -25,19 +28,28 @@ if (!in_array($activeTab, ['pending', 'reports', 'comments'], true)) {
 <div class="page-heading">
   <span class="eyebrow">KEEP THE COMMUNITY KIND</span>
   <h1>Moderation Center 🛡</h1>
-  <p>Review pending jokes, reported content, and comments. Your own content cannot be moderated by you.</p>
+  <p>Review pending jokes, browse approved/rejected history, moderate comments, and resolve user reports.</p>
 </div>
 
 <!-- Moderation section tabs -->
-<nav class="inline-actions" aria-label="Moderation tabs" style="margin-bottom:18px;flex-wrap:wrap;gap:10px;">
+<nav class="inline-actions" aria-label="Moderation tabs" style="margin-bottom:18px;flex-wrap:wrap;gap:8px;">
   <button type="button" class="btn <?= $activeTab === 'pending' ? 'primary' : 'ghost' ?>" data-mod-tab="pending">
-    Approve / Reject Jokes (<?= count($jokes) ?>)
+    Pending (<?= count($jokes) ?>)
+  </button>
+  <button type="button" class="btn <?= $activeTab === 'approved' ? 'primary' : 'ghost' ?>" data-mod-tab="approved">
+    Approved (<?= count($approvedJokes) ?>)
+  </button>
+  <button type="button" class="btn <?= $activeTab === 'rejected' ? 'primary' : 'ghost' ?>" data-mod-tab="rejected">
+    Rejected (<?= count($rejectedJokes) ?>)
+  </button>
+  <button type="button" class="btn <?= $activeTab === 'comments' ? 'primary' : 'ghost' ?>" data-mod-tab="comments">
+    Comments (<?= count($comments) ?>)
+  </button>
+  <button type="button" class="btn <?= $activeTab === 'hidden-comments' ? 'primary' : 'ghost' ?>" data-mod-tab="hidden-comments">
+    Hidden Comments (<?= count($hiddenComments) ?>)
   </button>
   <button type="button" class="btn <?= $activeTab === 'reports' ? 'primary' : 'ghost' ?>" data-mod-tab="reports">
     Reports (<?= count($reports) ?>)
-  </button>
-  <button type="button" class="btn <?= $activeTab === 'comments' ? 'primary' : 'ghost' ?>" data-mod-tab="comments">
-    Hide Comments (<?= count($comments) ?>)
   </button>
 </nav>
 
@@ -64,6 +76,89 @@ if (!in_array($activeTab, ['pending', 'reports', 'comments'], true)) {
   <?php endforeach; ?>
   <?php if (!$jokes): ?>
     <p>All caught up! ✨</p>
+  <?php endif; ?>
+</section>
+
+<!-- Approved (published) jokes history -->
+<section class="panel" data-mod-panel="approved" <?= $activeTab !== 'approved' ? 'hidden' : '' ?>>
+  <h2>Approved jokes (<?= count($approvedJokes) ?>)</h2>
+  <?php foreach ($approvedJokes as $aj): ?>
+    <div class="moderation-item">
+      <div>
+        <span class="pill"><?= e($aj['category_name']) ?></span>
+        <span class="pill subtle">Approved</span>
+        <h3><?= e($aj['title']) ?></h3>
+        <div class="joke-body"><?= sanitize_joke_html($aj['content']) ?></div>
+        <small>
+          by <?= e($aj['username']) ?> · <?= e($aj['created_at']) ?>
+          <?php if (!empty($aj['moderator_name'])): ?>
+            · Approved by <strong><?= e($aj['moderator_name']) ?></strong><?= !empty($aj['moderated_at']) ? ' (' . e($aj['moderated_at']) . ')' : '' ?>
+          <?php endif; ?>
+        </small>
+      </div>
+      <div class="inline-actions">
+        <a class="btn ghost" href="<?= e(Url::to('/jokes/' . (int) $aj['id'])) ?>">View</a>
+      </div>
+    </div>
+  <?php endforeach; ?>
+  <?php if (!$approvedJokes): ?>
+    <p>No approved jokes yet.</p>
+  <?php endif; ?>
+</section>
+
+<!-- Rejected jokes history with rejection reasons -->
+<section class="panel" data-mod-panel="rejected" <?= $activeTab !== 'rejected' ? 'hidden' : '' ?>>
+  <h2>Rejected jokes (<?= count($rejectedJokes) ?>)</h2>
+  <?php foreach ($rejectedJokes as $rj): ?>
+    <div class="moderation-item">
+      <div>
+        <span class="pill"><?= e($rj['category_name']) ?></span>
+        <span class="pill subtle">Rejected</span>
+        <h3><?= e($rj['title']) ?></h3>
+        <div class="joke-body"><?= sanitize_joke_html($rj['content']) ?></div>
+        <?php if (!empty($rj['moderation_note'])): ?>
+          <p style="margin-top:8px;"><strong>Reason:</strong> <?= e($rj['moderation_note']) ?></p>
+        <?php endif; ?>
+        <small>
+          by <?= e($rj['username']) ?> · <?= e($rj['created_at']) ?>
+          <?php if (!empty($rj['moderator_name'])): ?>
+            · Rejected by <strong><?= e($rj['moderator_name']) ?></strong><?= !empty($rj['moderated_at']) ? ' (' . e($rj['moderated_at']) . ')' : '' ?>
+          <?php endif; ?>
+        </small>
+      </div>
+    </div>
+  <?php endforeach; ?>
+  <?php if (!$rejectedJokes): ?>
+    <p>No rejected jokes yet.</p>
+  <?php endif; ?>
+</section>
+
+<!-- Hidden comments history with hide reasons -->
+<section class="panel" data-mod-panel="hidden-comments" <?= $activeTab !== 'hidden-comments' ? 'hidden' : '' ?>>
+  <h2>Hidden comments (<?= count($hiddenComments) ?>)</h2>
+  <?php foreach ($hiddenComments as $hc): ?>
+    <div class="moderation-item comment-mod-item">
+      <div class="comment-main-content">
+        <div class="comment-author-line">
+          <strong class="comment-user-name"><?= e($hc['username']) ?></strong>
+          <span class="comment-joke-ref">on “<?= e($hc['joke_title']) ?>” (#<?= (int) $hc['joke_id'] ?>)</span>
+          <span class="comment-date-badge">
+            <span>📅 <?= e(substr((string) $hc['created_at'], 0, 10)) ?></span>
+            <span>🕒 <?= e(substr((string) $hc['created_at'], 11, 8)) ?></span>
+          </span>
+        </div>
+        <p class="comment-text-body"><?= nl2br(e($hc['content'])) ?></p>
+        <p style="margin-top:6px;">
+          <strong>Hide reason:</strong> <?= e($hc['hide_reason'] ?? 'No reason recorded') ?>
+          <?php if (!empty($hc['moderator_name'])): ?>
+            <small> · Hidden by <strong><?= e($hc['moderator_name']) ?></strong><?= !empty($hc['hidden_at']) ? ' (' . e($hc['hidden_at']) . ')' : '' ?></small>
+          <?php endif; ?>
+        </p>
+      </div>
+    </div>
+  <?php endforeach; ?>
+  <?php if (!$hiddenComments): ?>
+    <p>No hidden comments yet.</p>
   <?php endif; ?>
 </section>
 
