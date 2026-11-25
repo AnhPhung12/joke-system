@@ -103,15 +103,19 @@ $bellUnread = count(array_filter($bellItems, static fn($n) => !(bool)$n["is_read
                         <?php if (Auth::can('admin.view')): // Show staff panel shortcut for authorized users ?>
                             <?php
                             $staffLanding = '/admin/jokes';
-                            foreach ([
-                                ['analytics.view', '/admin/overview'],
-                                ['users.view', '/admin/users'],
-                                ['categories.manage', '/admin/categories'],
-                                ['settings.manage', '/admin/settings'],
-                                ['jokes.manage', '/admin/jokes'],
-                                ['reports.manage', '/admin/reports'],
-                            ] as [$sPerm, $sRoute]) {
-                                if (Auth::can($sPerm)) { $staffLanding = $sRoute; break; }
+                            if (!Auth::hasRole('admin') && Auth::can('jokes.manage')) {
+                                $staffLanding = '/admin/jokes';
+                            } else {
+                                foreach ([
+                                    ['analytics.view', '/admin/overview'],
+                                    ['users.view', '/admin/users'],
+                                    ['categories.manage', '/admin/categories'],
+                                    ['settings.manage', '/admin/settings'],
+                                    ['jokes.manage', '/admin/jokes'],
+                                    ['reports.manage', '/admin/reports'],
+                                ] as [$sPerm, $sRoute]) {
+                                    if (Auth::can($sPerm)) { $staffLanding = $sRoute; break; }
+                                }
                             }
                             ?>
                             <a href="<?= e(Url::to($staffLanding)) ?>">

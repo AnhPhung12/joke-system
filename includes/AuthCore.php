@@ -139,6 +139,7 @@ final class Auth
                 'moderation.review',
                 'admin.view',
                 'analytics.view',
+                'categories.manage',
                 'jokes.manage',
                 'reports.manage',
             ]);

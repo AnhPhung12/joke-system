@@ -84,7 +84,10 @@ final class AuthController
         // Start authenticated session and record login timestamp
         Auth::login($user);
         (new User())->touchLogin((int) $user['id']);
-        // Redirect staff to the first sidebar tab they have permission to access
+        // Redirect moderators straight to Manage Jokes; admins go to the first permitted tab
+        if (!Auth::hasRole('admin') && Auth::can('jokes.manage')) {
+            Url::redirect('/admin/jokes');
+        }
         foreach ([
             ['analytics.view', '/admin/overview'],
             ['users.view', '/admin/users'],

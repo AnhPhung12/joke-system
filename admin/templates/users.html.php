@@ -303,7 +303,13 @@ $currentDate = $filter_date ?? (string) ($_GET['filter_date'] ?? $_GET['date'] ?
           </tr>
         <?php endif; // End empty users check. ?>
 
-        <?php foreach ($users as $u): // Render one table row per user account.
+        <?php
+        $perPage = 5;
+        $totalUsers = count($users);
+        $pageCount = max(1, (int) ceil($totalUsers / $perPage));
+        $page = max(1, min($pageCount, (int) ($_GET['page'] ?? 1)));
+        $pagedUsers = array_slice($users, ($page - 1) * $perPage, $perPage);
+        foreach ($pagedUsers as $u): // Render one table row per user account on current page.
           $id = (int) $u['id']; // Cast user ID to integer.
           $rawRoles = array_values(array_unique(array_filter(array_map('trim', explode(',', (string) $u['roles']))))); // Parse comma-separated roles into unique trimmed slugs.
           $staff = (bool) array_intersect($rawRoles, ['admin', 'moderator']); // Flag whether this user holds staff privileges.
@@ -383,6 +389,26 @@ $currentDate = $filter_date ?? (string) ($_GET['filter_date'] ?? $_GET['date'] ?
       </tbody>
     </table>
   </div>
+
+  <?php if ($pageCount > 1):
+    $userPageUrl = static function (int $p): string {
+      $qs = $_GET;
+      $qs['page'] = $p;
+      return Url::to('/admin/users') . '?' . http_build_query($qs);
+    };
+  ?>
+    <nav class="pagination" aria-label="User pages" style="margin-top:16px;">
+      <?php if ($page > 1): ?>
+        <a class="btn ghost" href="<?= e($userPageUrl($page - 1)) ?>">← Previous</a>
+      <?php endif; ?>
+      <?php for ($p = 1; $p <= $pageCount; $p++): ?>
+        <a class="btn <?= $p === $page ? 'primary' : 'ghost' ?>" <?= $p === $page ? 'aria-current="page"' : '' ?> href="<?= e($userPageUrl($p)) ?>"><?= $p ?></a>
+      <?php endfor; ?>
+      <?php if ($page < $pageCount): ?>
+        <a class="btn ghost" href="<?= e($userPageUrl($page + 1)) ?>">Next →</a>
+      <?php endif; ?>
+    </nav>
+  <?php endif; ?>
 </section>
 
 <!-- Dialog for creating a new staff account -->
@@ -515,7 +541,7 @@ $currentDate = $filter_date ?? (string) ($_GET['filter_date'] ?? $_GET['date'] ?
         </div>
         <div class="staff-permission-list">
           <?php foreach ($permissionKeys as $key): // Render one toggle checkbox per permission key.
-            $default = in_array($key, ['analytics.view', 'jokes.manage', 'reports.manage', 'moderation.view', 'moderation.review'], true); // Default enabled permissions for moderators.
+            $default = in_array($key, ['analytics.view', 'categories.manage', 'jokes.manage', 'reports.manage', 'moderation.view', 'moderation.review'], true); // Default enabled permissions for moderators.
             $checked = array_key_exists($key, $values) ? (bool) $values[$key] : $default; // Use saved override if present, otherwise default.
           ?>
             <label class="staff-checkbox-row">

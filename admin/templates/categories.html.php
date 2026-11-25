@@ -9,6 +9,12 @@
  */
 
 use App\Core\{Url, Csrf}; // Import URL and CSRF token helpers.
+
+$perPage = 5;
+$totalCats = count($categories);
+$pageCount = max(1, (int) ceil($totalCats / $perPage));
+$page = max(1, min($pageCount, (int) ($_GET['page'] ?? 1)));
+$pagedCategories = array_slice($categories, ($page - 1) * $perPage, $perPage);
 ?>
 <!-- Page header -->
 <div class="page-heading">
@@ -39,7 +45,7 @@ use App\Core\{Url, Csrf}; // Import URL and CSRF token helpers.
         </tr>
       </thead>
       <tbody>
-        <?php foreach ($categories as $c): // Render one table row per category.
+        <?php foreach ($pagedCategories as $c): // Render one table row per category on current page.
           $id = (int) $c['id']; // Cast category ID to integer.
         ?>
           <tr>
@@ -65,6 +71,20 @@ use App\Core\{Url, Csrf}; // Import URL and CSRF token helpers.
       </tbody>
     </table>
   </div>
+
+  <?php if ($pageCount > 1): ?>
+    <nav class="pagination" aria-label="Category pages" style="margin-top:16px;">
+      <?php if ($page > 1): ?>
+        <a class="btn ghost" href="<?= e(Url::to('/admin/categories')) ?>?page=<?= $page - 1 ?>">← Previous</a>
+      <?php endif; ?>
+      <?php for ($p = 1; $p <= $pageCount; $p++): ?>
+        <a class="btn <?= $p === $page ? 'primary' : 'ghost' ?>" <?= $p === $page ? 'aria-current="page"' : '' ?> href="<?= e(Url::to('/admin/categories')) ?>?page=<?= $p ?>"><?= $p ?></a>
+      <?php endfor; ?>
+      <?php if ($page < $pageCount): ?>
+        <a class="btn ghost" href="<?= e(Url::to('/admin/categories')) ?>?page=<?= $page + 1 ?>">Next →</a>
+      <?php endif; ?>
+    </nav>
+  <?php endif; ?>
 </section>
 
 <!-- Dialog for creating a new category -->

@@ -9,6 +9,12 @@
  */
 
 use App\Core\{Csrf, Url}; // Import CSRF token and URL helpers.
+
+$perPage = 5;
+$totalJokes = count($jokes);
+$pageCount = max(1, (int) ceil($totalJokes / $perPage));
+$page = max(1, min($pageCount, (int) ($_GET['page'] ?? 1)));
+$pagedJokes = array_slice($jokes, ($page - 1) * $perPage, $perPage);
 ?>
 <!-- Page header -->
 <div class="page-heading">
@@ -77,7 +83,7 @@ use App\Core\{Csrf, Url}; // Import CSRF token and URL helpers.
           </tr>
         <?php endif; ?>
 
-        <?php foreach ($jokes as $j): // Render one table row per joke record.
+        <?php foreach ($pagedJokes as $j): // Render one table row per joke record on current page.
           $id = (int) $j['id']; // Cast joke ID to integer.
           $createdAt = !empty($j['created_at']) ? strtotime((string) $j['created_at']) : null; // Parse creation timestamp if present.
           $displayDate = $createdAt ? date('Y-m-d', $createdAt) : '—'; // Format creation date or show placeholder.
@@ -132,6 +138,20 @@ use App\Core\{Csrf, Url}; // Import CSRF token and URL helpers.
       </tbody>
     </table>
   </div>
+
+  <?php if ($pageCount > 1): ?>
+    <nav class="pagination" aria-label="Manage jokes pages" style="margin-top:16px;">
+      <?php if ($page > 1): ?>
+        <a class="btn ghost" href="<?= e(Url::to('/admin/jokes')) ?>?page=<?= $page - 1 ?>">← Previous</a>
+      <?php endif; ?>
+      <?php for ($p = 1; $p <= $pageCount; $p++): ?>
+        <a class="btn <?= $p === $page ? 'primary' : 'ghost' ?>" <?= $p === $page ? 'aria-current="page"' : '' ?> href="<?= e(Url::to('/admin/jokes')) ?>?page=<?= $p ?>"><?= $p ?></a>
+      <?php endfor; ?>
+      <?php if ($page < $pageCount): ?>
+        <a class="btn ghost" href="<?= e(Url::to('/admin/jokes')) ?>?page=<?= $page + 1 ?>">Next →</a>
+      <?php endif; ?>
+    </nav>
+  <?php endif; ?>
 </section>
 
 <p style="margin-top:16px;">
