@@ -251,8 +251,8 @@ final class AdminController
             Url::redirect('/admin/settings');
         }
 
-        // Use gemini-3.1-flash-lite exclusively
-        $model = 'gemini-3.1-flash-lite';
+        // Use gemini-3.5-flash-lite exclusively
+        $model = 'gemini-3.5-flash-lite';
         $fallbackModels = [$model, $model];
 
         // Build minimal ping payload with 10-token cap

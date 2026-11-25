@@ -68,7 +68,7 @@ final class GeminiClient
         }
 
         // Resolve and validate model name from environment
-        $model = trim((string) (getenv('JOKE_AI_MODEL') ?: 'gemini-3.1-flash-lite'));
+        $model = trim((string) (getenv('JOKE_AI_MODEL') ?: 'gemini-3.5-flash-lite'));
         $model = preg_replace('~^models/~', '', $model);
 
         // Guard against invalid characters in model identifier before URL interpolation
@@ -118,7 +118,7 @@ final class GeminiClient
 
         // Track last transient error message across retry attempts
         $last = '';
-        $fallbackModels = ['gemini-3.1-flash-lite'];
+        $fallbackModels = ['gemini-3.5-flash-lite'];
 
         // Try primary model and fall back across Gemini 3 models (2 passes with short 0.5s pause)
         for ($pass = 0; $pass < 2; $pass++) {
