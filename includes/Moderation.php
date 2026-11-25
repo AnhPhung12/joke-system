@@ -75,7 +75,7 @@ final class Moderation
             ->query(
                 'SELECT co.id, co.content, co.created_at, co.joke_id, u.username, j.title joke_title, '
                 . '(SELECT ml.reason FROM moderation_logs ml WHERE ml.target_type="comment" AND ml.target_id=co.id ORDER BY ml.id DESC LIMIT 1) AS hide_reason, '
-                . '(SELECT mu.username FROM moderation_logs ml JOIN users mu ON mu.id=ml.actor_id WHERE ml.target_type="comment" AND ml.target_id=co.id ORDER BY ml.id DESC LIMIT 1) AS moderator_name, '
+                . '(SELECT mu.username FROM moderation_logs ml JOIN users mu ON mu.id=ml.actor_user_id WHERE ml.target_type="comment" AND ml.target_id=co.id ORDER BY ml.id DESC LIMIT 1) AS moderator_name, '
                 . '(SELECT ml.created_at FROM moderation_logs ml WHERE ml.target_type="comment" AND ml.target_id=co.id ORDER BY ml.id DESC LIMIT 1) AS hidden_at '
                 . 'FROM comments co '
                 . 'JOIN users u ON u.id = co.user_id '
