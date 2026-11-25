@@ -90,7 +90,7 @@ $pagedJokes = array_slice($jokes, ($page - 1) * $perPage, $perPage);
         ?>
           <tr>
             <td>
-              <a class="staff-joke-link" href="<?= e(Url::to('/jokes/' . $id)) ?>">
+              <a class="staff-joke-link" href="<?= e(Url::to('/jokes/' . $id . '?from=manage-jokes')) ?>">
                 <strong><?= e($j['title']) ?></strong>
               </a>
               <small class="staff-subline">Joke #<?= $id ?></small>
@@ -121,7 +121,7 @@ $pagedJokes = array_slice($jokes, ($page - 1) * $perPage, $perPage);
             </td>
             <td>
               <div class="staff-row-actions">
-                <a class="btn ghost staff-action" href="<?= e(Url::to('/jokes/' . $id)) ?>">View</a>
+                <a class="btn ghost staff-action" href="<?= e(Url::to('/jokes/' . $id . '?from=manage-jokes')) ?>">View</a>
                 <form
                   method="post"
                   action="<?= e(Url::to('/admin/jokes/' . $id . '/delete')) ?>"

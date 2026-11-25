@@ -18,6 +18,7 @@ use App\Core\{Auth, Csrf, Url}; // Import auth, CSRF, and URL helpers
 $me = Auth::user(); // Fetch currently signed-in user or null for guests
 $isStaff = $me && (Auth::hasRole('admin') || Auth::hasRole('moderator'));
 $fromModeration = $isStaff && (($_GET['from'] ?? '') === 'moderation');
+$fromManageJokes = $isStaff && (($_GET['from'] ?? '') === 'manage-jokes');
 $backTab = (string) ($_GET['tab'] ?? 'approved');
 if (!in_array($backTab, ['pending', 'approved', 'rejected', 'comments', 'hidden-comments', 'reports'], true)) {
     $backTab = 'approved';
@@ -26,6 +27,8 @@ if (!in_array($backTab, ['pending', 'approved', 'rejected', 'comments', 'hidden-
 <!-- Back link -->
 <?php if ($fromModeration): ?>
   <a class="text-link" href="<?= e(Url::to('/admin/reports?tab=' . urlencode($backTab))) ?>">← Back to Moderation Center</a>
+<?php elseif ($fromManageJokes): ?>
+  <a class="text-link" href="<?= e(Url::to('/admin/jokes')) ?>">← Back to Manage Jokes</a>
 <?php else: ?>
   <a class="text-link" href="<?= e(Url::to('/jokes')) ?>">← Back to Library</a>
 <?php endif; ?>
