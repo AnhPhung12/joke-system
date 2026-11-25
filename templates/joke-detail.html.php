@@ -25,7 +25,7 @@ if (!in_array($backTab, ['pending', 'approved', 'rejected', 'comments', 'hidden-
 ?>
 <!-- Back link -->
 <?php if ($fromModeration): ?>
-  <a class="text-link" href="<?= e(Url::to('/admin/reports.php?tab=' . urlencode($backTab))) ?>">← Back to Moderation Center</a>
+  <a class="text-link" href="<?= e(Url::to('/admin/reports?tab=' . urlencode($backTab))) ?>">← Back to Moderation Center</a>
 <?php else: ?>
   <a class="text-link" href="<?= e(Url::to('/jokes')) ?>">← Back to Library</a>
 <?php endif; ?>
