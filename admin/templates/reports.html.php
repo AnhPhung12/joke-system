@@ -16,6 +16,10 @@ use App\Core\{Csrf, Url}; // Import CSRF token and URL helpers.
 // Resolve active comment filter/sort values from controller variables or query string.
 $commentSort = $commentSort ?? (string) ($_GET['comment_sort'] ?? 'date_desc'); // Default comment sort to newest first.
 $commentDate = $commentDate ?? (string) ($_GET['comment_date'] ?? ''); // Read optional comment date filter.
+$activeTab = (string) ($_GET['tab'] ?? (!empty($_GET['comment_sort']) || !empty($_GET['comment_date']) ? 'comments' : 'pending'));
+if (!in_array($activeTab, ['pending', 'reports', 'comments'], true)) {
+  $activeTab = 'pending';
+}
 ?>
 <!-- Page header -->
 <div class="page-heading">
@@ -24,8 +28,21 @@ $commentDate = $commentDate ?? (string) ($_GET['comment_date'] ?? ''); // Read o
   <p>Review pending jokes, reported content, and comments. Your own content cannot be moderated by you.</p>
 </div>
 
+<!-- Moderation section tabs -->
+<nav class="inline-actions" aria-label="Moderation tabs" style="margin-bottom:18px;flex-wrap:wrap;gap:10px;">
+  <button type="button" class="btn <?= $activeTab === 'pending' ? 'primary' : 'ghost' ?>" data-mod-tab="pending">
+    Approve / Reject Jokes (<?= count($jokes) ?>)
+  </button>
+  <button type="button" class="btn <?= $activeTab === 'reports' ? 'primary' : 'ghost' ?>" data-mod-tab="reports">
+    Reports (<?= count($reports) ?>)
+  </button>
+  <button type="button" class="btn <?= $activeTab === 'comments' ? 'primary' : 'ghost' ?>" data-mod-tab="comments">
+    Hide Comments (<?= count($comments) ?>)
+  </button>
+</nav>
+
 <!-- Pending jokes awaiting approval or rejection -->
-<section class="panel">
+<section class="panel" data-mod-panel="pending" <?= $activeTab !== 'pending' ? 'hidden' : '' ?>>
   <h2>Pending jokes (<?= count($jokes) ?>)</h2>
   <?php foreach ($jokes as $j): ?>
     <div class="moderation-item">
@@ -51,7 +68,7 @@ $commentDate = $commentDate ?? (string) ($_GET['comment_date'] ?? ''); // Read o
 </section>
 
 <!-- User-submitted abuse reports -->
-<section class="panel">
+<section class="panel" data-mod-panel="reports" <?= $activeTab !== 'reports' ? 'hidden' : '' ?>>
   <h2>Reports (<?= count($reports) ?>)</h2>
   <?php foreach ($reports as $r): ?>
     <div class="moderation-item">
@@ -79,7 +96,7 @@ $commentDate = $commentDate ?? (string) ($_GET['comment_date'] ?? ''); // Read o
 </section>
 
 <!-- Recent comments with date/time filtering and hide controls -->
-<section class="panel recent-comments-panel">
+<section class="panel recent-comments-panel" data-mod-panel="comments" <?= $activeTab !== 'comments' ? 'hidden' : '' ?>>
   <div class="recent-comments-head">
     <div>
       <h2>Recent comments (<?= count($comments) ?>)</h2>
@@ -192,9 +209,32 @@ $commentDate = $commentDate ?? (string) ($_GET['comment_date'] ?? ''); // Read o
 </section>
 
 <script>
-// Update a comment filter/sort query parameter and reload the page.
+// Switch between Moderation Center tabs and persist ?tab= in the URL.
+document.addEventListener('DOMContentLoaded', function () {
+  const buttons = document.querySelectorAll('[data-mod-tab]');
+  const panels = document.querySelectorAll('[data-mod-panel]');
+  buttons.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      const target = btn.getAttribute('data-mod-tab');
+      buttons.forEach(function (b) {
+        const active = b.getAttribute('data-mod-tab') === target;
+        b.classList.toggle('primary', active);
+        b.classList.toggle('ghost', !active);
+      });
+      panels.forEach(function (p) {
+        p.hidden = p.getAttribute('data-mod-panel') !== target;
+      });
+      const url = new URL(window.location.href);
+      url.searchParams.set('tab', target);
+      window.history.replaceState({}, '', url.toString());
+    });
+  });
+});
+
+// Update a comment filter/sort query parameter and reload on the comments tab.
 function submitCommentFilter(key, val) {
   const url = new URL(window.location.href);
+  url.searchParams.set('tab', 'comments');
   if (val) {
     url.searchParams.set(key, val);
   } else {
