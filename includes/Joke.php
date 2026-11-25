@@ -169,8 +169,25 @@ final class Joke
      *
      * @param array<string, mixed> $data
      */
-    public function create(int $userId, array $data): void
+    public function create(int $userId, array $data, bool $autoPublish = false): void
     {
+        // Auto-publish for staff (admin/moderator), or queue as 'pending' for regular clients
+        if ($autoPublish) {
+            $s = Database::connect()->prepare(
+                'INSERT INTO jokes(user_id,category_id,title,content,country_code,language_code,status,moderated_by,moderated_at,published_at) VALUES(?,?,?,?,?,?,"published",?,NOW(),NOW())'
+            );
+            $s->execute([
+                $userId,
+                $data['category_id'],
+                $data['title'],
+                sanitize_joke_html($data['content']),
+                $data['country_code'],
+                'en',
+                $userId,
+            ]);
+            return;
+        }
+
         // Prepare insert with initial 'pending' moderation status
         $s = Database::connect()->prepare(
             'INSERT INTO jokes(user_id,category_id,title,content,country_code,language_code,status) VALUES(?,?,?,?,?, ?,"pending")'
@@ -187,12 +204,28 @@ final class Joke
     }
 
     /**
-     * Update an existing joke and reset its moderation status to `pending` for re-review.
+     * Update an existing joke (auto-published for staff, or reset to `pending` for regular clients).
      *
      * @param array<string, mixed> $data
      */
-    public function update(int $id, array $data): void
+    public function update(int $id, array $data, ?int $autoPublishByUserId = null): void
     {
+        if ($autoPublishByUserId !== null) {
+            $s = Database::connect()->prepare(
+                'UPDATE jokes SET category_id=?,title=?,content=?,country_code=?,language_code=?,status="published",moderation_note=NULL,moderated_by=?,moderated_at=NOW(),published_at=COALESCE(published_at,NOW()) WHERE id=?'
+            );
+            $s->execute([
+                $data['category_id'],
+                $data['title'],
+                sanitize_joke_html($data['content']),
+                $data['country_code'],
+                'en',
+                $autoPublishByUserId,
+                $id,
+            ]);
+            return;
+        }
+
         // Update joke fields and clear prior moderation metadata for re-approval
         $s = Database::connect()->prepare(
             'UPDATE jokes SET category_id=?,title=?,content=?,country_code=?,language_code=?,status="pending",moderation_note=NULL,moderated_by=NULL,moderated_at=NULL,published_at=NULL WHERE id=?'

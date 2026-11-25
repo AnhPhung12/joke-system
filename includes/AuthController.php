@@ -84,8 +84,20 @@ final class AuthController
         // Start authenticated session and record login timestamp
         Auth::login($user);
         (new User())->touchLogin((int) $user['id']);
-        // Redirect staff to the admin overview
-        Url::redirect('/admin/overview');
+        // Redirect staff to the first sidebar tab they have permission to access
+        foreach ([
+            ['analytics.view', '/admin/overview'],
+            ['users.view', '/admin/users'],
+            ['categories.manage', '/admin/categories'],
+            ['settings.manage', '/admin/settings'],
+            ['jokes.manage', '/admin/jokes'],
+            ['reports.manage', '/admin/reports'],
+        ] as [$perm, $route]) {
+            if (Auth::can($perm)) {
+                Url::redirect($route);
+            }
+        }
+        Url::redirect('/admin/jokes');
     }
 
     /**

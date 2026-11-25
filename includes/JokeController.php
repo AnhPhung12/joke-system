@@ -219,9 +219,10 @@ final class JokeController
             Url::redirect('/jokes/create');
         }
 
-        // Save the new joke, flash confirmation, and redirect to My Jokes.
-        $this->model->create((int) Auth::user()['id'], $data);
-        Session::flash('Your joke has been submitted for moderator review.');
+        // Save the new joke (auto-publish for admin/moderator, queue for regular clients)
+        $isStaff = Auth::hasRole('admin') || Auth::hasRole('moderator');
+        $this->model->create((int) Auth::user()['id'], $data, $isStaff);
+        Session::flash($isStaff ? 'Your joke has been published.' : 'Your joke has been submitted for moderator review.');
         Url::redirect('/my-jokes');
     }
 
@@ -248,9 +249,10 @@ final class JokeController
             Url::redirect('/jokes/' . $id . '/edit');
         }
 
-        // Persist the joke update, flash status, and redirect to My Jokes.
-        $this->model->update($id, $data);
-        Session::flash('Joke updated and returned to the moderation queue.');
+        // Persist the joke update (auto-publish for admin/moderator, re-queue for regular clients)
+        $isStaff = Auth::hasRole('admin') || Auth::hasRole('moderator');
+        $this->model->update($id, $data, $isStaff ? (int) Auth::user()['id'] : null);
+        Session::flash($isStaff ? 'Joke updated and published.' : 'Joke updated and returned to the moderation queue.');
         Url::redirect('/my-jokes');
     }
 

@@ -101,7 +101,20 @@ $bellUnread = count(array_filter($bellItems, static fn($n) => !(bool)$n["is_read
                         <a href="<?= e(Url::to('/jokes/create')) ?>">＋ &nbsp; Create Joke</a>
                         <a href="<?= e(Url::to('/playground')) ?>">✦ &nbsp; AI Playground</a>
                         <?php if (Auth::can('admin.view')): // Show staff panel shortcut for authorized users ?>
-                            <a href="<?= e(Url::to('/admin/overview')) ?>">
+                            <?php
+                            $staffLanding = '/admin/jokes';
+                            foreach ([
+                                ['analytics.view', '/admin/overview'],
+                                ['users.view', '/admin/users'],
+                                ['categories.manage', '/admin/categories'],
+                                ['settings.manage', '/admin/settings'],
+                                ['jokes.manage', '/admin/jokes'],
+                                ['reports.manage', '/admin/reports'],
+                            ] as [$sPerm, $sRoute]) {
+                                if (Auth::can($sPerm)) { $staffLanding = $sRoute; break; }
+                            }
+                            ?>
+                            <a href="<?= e(Url::to($staffLanding)) ?>">
                                 <span>▦ &nbsp; Staff Panel</span>
                                 <?php if ($pendingStaffCount > 0): // Show pending review indicator ?>
                                     <span class="nav-red-dot" title="<?= (int)$pendingStaffCount ?> pending for review">
